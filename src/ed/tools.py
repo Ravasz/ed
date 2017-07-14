@@ -146,7 +146,7 @@ def protein_quantifier(protName = "Ptpn22"):
     else: 
       print protName, "does not match to any entry"
 
-    with open("protein_abundances-ibaq.txt","w") as outF:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/protein_abundances-ibaq.txt","w") as outF:
       for resI in sortedFullD:
         outF.write(resI[0] + "," + str(resI[1:]).strip("()[],") + "\n")
         
