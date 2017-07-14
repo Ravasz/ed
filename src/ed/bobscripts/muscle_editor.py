@@ -6,7 +6,7 @@ Created on 28 Jun 2016
 Take in a muscle alignment from http://www.ebi.ac.uk/Tools/msa/ and concatenate the lines properly to form one single line
 '''
 
-with open("/home/mate/workspace/katamari/src/root/ed/datafiles/muscle-I20160628-172926-0761-43925401-pg.clw","r") as inpF:
+with open("/home/mate/workspace/katamari/src/ed/datafiles/muscle-I20160628-172926-0761-43925401-pg.clw","r") as inpF:
 
   sL = []
   
@@ -31,7 +31,7 @@ with open("/home/mate/workspace/katamari/src/root/ed/datafiles/muscle-I20160628-
     lineCount += 1
     if lineCount == 7: break
 
-with open("/home/mate/workspace/katamari/src/root/ed/datafiles/muscle-I20160628-172926-0761-43925401-pg.txt","w") as outF:
+with open("/home/mate/workspace/katamari/src/ed/datafiles/muscle-I20160628-172926-0761-43925401-pg.txt","w") as outF:
   for sI in sL:
     outF.write(sI+"\n")
     

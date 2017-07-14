@@ -18,9 +18,9 @@ Jens' dataset:
 '''
 
 # open hukelmann data
-with open("/home/mate/workspace/katamari/src/root/ed/datafiles/ni.3314-f1.txt", "rU") as inpHukF:
+with open("/home/mate/workspace/katamari/src/ed/datafiles/ni.3314-f1.txt", "rU") as inpHukF:
   # open Bob's data
-  with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_CTL-21-55-24-05-20162.txt","r") as inpBobF:
+  with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_CTL-21-55-24-05-20162.txt","r") as inpBobF:
     # abs_quant_24H_TCR-17-21-19-05-20162.txt
     # abs_quant_CTL-17-22-19-05-20162.txt
     
@@ -72,7 +72,7 @@ with open("/home/mate/workspace/katamari/src/root/ed/datafiles/ni.3314-f1.txt", 
     print matchCount
     print "number of proteins within the acceptable range:", len(correctD)
     
-    outF = open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_CTL-21-55-24-05-20163.txt","w")
+    outF = open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_CTL-21-55-24-05-20163.txt","w")
     
     for outDV in sorted(commonD.items(), key=lambda x:int(x[1][0])): # sort the dict based on the ID they have
       for outI in outDV[1][:-1]:

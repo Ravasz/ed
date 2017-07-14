@@ -496,7 +496,7 @@ def go_term_advanced_lookup(protID):
 
   
   from os import listdir
-  idList = [x[:x.find(".")] for x in listdir("/home/mate/workspace/katamari/src/root/ed/datafiles/go_terms")]
+  idList = [x[:x.find(".")] for x in listdir("/home/mate/workspace/katamari/src/ed/datafiles/go_terms")]
   
   if protID not in idList: 
     
@@ -504,7 +504,7 @@ def go_term_advanced_lookup(protID):
   
     txtS = urllib.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
     # print txtS.read()
-    with open("/home/mate/workspace/katamari/src/root/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
       for fileLine in txtS:
         outF.write(fileLine)
       
@@ -519,7 +519,7 @@ def go_term_lookup(protID):
   
   txtS = urllib.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
   # print txtS.read()
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
     for fileLine in txtS:
       outF.write(fileLine)
 

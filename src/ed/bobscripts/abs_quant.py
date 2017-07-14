@@ -8,8 +8,8 @@ This module is written specifically for Bob's 24H T4 stimulation dataset,
 but should work with anything else in the same format.
 '''
 
-def master(fileName = "/home/mate/workspace/katamari/src/root/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt", 
-           outFolder = "/home/mate/workspace/katamari/src/root/ed/bob/processed/", tagS="abs_quant_24H_T4"):
+def master(fileName = "/home/mate/workspace/katamari/src/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt", 
+           outFolder = "/home/mate/workspace/katamari/src/ed/bob/processed/", tagS="abs_quant_24H_T4"):
   """run all the other scripts in this module in the appropriate order"""
   
   # previous: /home/mate/workspace/katamari/src/root/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt
@@ -91,7 +91,7 @@ def file_parser(fileName, outFolder, expTag):
 def entry_parser(fileName, outFolder, expTag):
   """remove duplicate protein name and total peptide count cell entries"""
   from operator import add
-  from root.ed.tools import go_term_advanced_lookup
+  from ed.tools import go_term_advanced_lookup
   
   goC = 0
   errC = 0

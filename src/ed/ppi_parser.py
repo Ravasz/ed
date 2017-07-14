@@ -26,7 +26,7 @@ def intact_parser():
   todo:
   - retrieve both gene name and full protein name
   """
-  from root.ed.tools import prot_id_converter, file_importer
+  from ed.tools import prot_id_converter, file_importer
   
   baitStr = "CSK" # gene name of bait protein. Has to be entered all caps
   
@@ -102,7 +102,7 @@ def intact_parser():
 def name_collector():
   """look up protein interactors, download their fasta sequences to extract their names. 
   Print the names to STDout"""
-  from root.ed.tools import prot_entrez_fetch
+  from ed.tools import prot_entrez_fetch
   
   resD = {}
   idList = intact_parser() 
@@ -149,8 +149,8 @@ def name_collector():
 def sh3_counter():
   """look up a list of uniprot IDs, download their full genbank entries from the Entrez database 
   and count the number of SH3 domains the interactors have. Print the results to STDout"""
-  from root.ed.tools import prot_entrez_fetch, prot_id_converter
-  from root.ed.bobscripts.bobdata_parser import protein_name_collector
+  from ed.tools import prot_entrez_fetch, prot_id_converter
+  from ed.bobscripts.bobdata_parser import protein_name_collector
   # idList = intact_parser() # to use for Ptpn22 interactome
   fullPreyL = protein_name_collector()
   # fullPreyL = ["P20152", "Q8BFZ3", "P17182", "P17742", "P11499"]

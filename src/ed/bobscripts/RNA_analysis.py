@@ -189,7 +189,7 @@ def string_analyzer(targetD):
     
 
 def main():
-  from root.ed.mouse_proteome_flatfile_parser import sh2_dicter as sh2d
+  from ed.mouse_proteome_flatfile_parser import sh2_dicter as sh2d
   
   rnaD = rna_parser() # build RNA dictionary
   protDict = prot_importer() # build protein dictionary

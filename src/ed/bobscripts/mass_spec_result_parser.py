@@ -6,9 +6,9 @@ Created on 29 Jun 2016
 Take in a list of hits from my OST mass spectrometry prepared by Thierry, and return Gene names for each uniprot ID in them.
 '''
 
-from root.ed.tools import prot_id_converter
+from ed.tools import prot_id_converter
 
-with open("/home/mate/workspace/katamari/src/root/ed/datafiles/ot1-16062016.csv","r") as inpF:
+with open("/home/mate/workspace/katamari/src/ed/datafiles/ot1-16062016.csv","r") as inpF:
   idL = []
   headerFlag = True
   for inpLine in inpF:
@@ -33,7 +33,7 @@ with open("/home/mate/workspace/katamari/src/root/ed/datafiles/ot1-16062016.csv"
     
   geneL = prot_id_converter(idL, outDB="genesymbol")
   
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/ot1-16062016-gene-names.csv","w") as outF:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/ot1-16062016-gene-names.csv","w") as outF:
     for geneI in geneL:
       outF.write(geneI + "\n")
       

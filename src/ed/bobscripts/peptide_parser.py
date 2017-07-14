@@ -12,7 +12,7 @@ Then, use the phosphorylation site dataset in the datafiles folder which is the 
 
 
 def main():
-  from root.ed.tools import html_creator, prot_id_converter, prot_entrez_fetch
+  from ed.tools import html_creator, prot_id_converter, prot_entrez_fetch
   from copy import deepcopy
   print "this is peptide parser"
   

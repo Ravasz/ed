@@ -6,8 +6,8 @@ Created on 27 May 2016
 Take the output file from abs_quant.py and the folder with all the GO terms and fuse them into a single file.
 '''
 
-with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20162.txt","r") as inpF:
-  with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20164.txt","w") as outF:
+with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20162.txt","r") as inpF:
+  with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20164.txt","w") as outF:
   
     headerFlag = True
     
@@ -18,7 +18,7 @@ with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_24H
         outF.write(inpLine.rstrip("\n") + "," + "GO Function" + "," + "GO Process" + "," + "GO Component" + "\n")
         continue
       # this block here opens the GO term file associated with the query at hand, and collects out the GO terms into 3 lists
-      with open("/home/mate/workspace/katamari/src/root/ed/datafiles/go_terms/"+inpL[1]+".txt","r") as goF:
+      with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+inpL[1]+".txt","r") as goF:
         goHead = True
         goFun = []
         goProc = []

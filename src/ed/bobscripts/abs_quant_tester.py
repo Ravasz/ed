@@ -7,7 +7,7 @@ There is something wrong with hte way I process the ProteinGroups file. This scr
 
 '''
 
-inpFile = open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_CTL-11-15-26-05-20162.txt","rU")
+inpFile = open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_CTL-11-15-26-05-20162.txt","rU")
 
 headerFlag = True
 

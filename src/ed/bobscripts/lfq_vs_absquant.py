@@ -10,8 +10,8 @@ from math import log
 
 print "this is lfq vs absquant"
 
-with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20164.txt","r") as inpF:
-  with open("/home/mate/workspace/katamari/src/root/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20165.txt","w") as outF:
+with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20164.txt","r") as inpF:
+  with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20165.txt","w") as outF:
     headerFlag = True
     for inpLine in inpF:
       if headerFlag:

@@ -7,8 +7,8 @@ explore phosphorylation sites outputted by maxquant in Phospho (STY)sites.txt
 
 def phospho_gene_counter():
   """count how many proteins there are in the phospho dataset"""
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/Phospho-STY-Sites.txt","r") as inpF:
-    with open("/home/mate/workspace/katamari/src/root/ed/datafiles/phospho-histones.txt","w") as outF:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/Phospho-STY-Sites.txt","r") as inpF:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/phospho-histones.txt","w") as outF:
       geneL = []
       startFlag = True
       for inpLine in inpF:
@@ -39,8 +39,8 @@ def phospho_gene_counter():
     
 def phospho_to_regular():
   """compare the STY dataset proteins to the original 24H T4 calulcated dataset from Dundee. THey should mostly overlap"""
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/proteinGroups_phospho_24H_T4.txt","r") as inpPhos:
-    with open("/home/mate/workspace/katamari/src/root/ed/datafiles/24h proteinGroups.txt","rU") as inpOld:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/proteinGroups_phospho_24H_T4.txt","r") as inpPhos:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/24h proteinGroups.txt","rU") as inpOld:
       oldL = []
       for inpLine in inpOld:
         inpL = inpLine.split("\t")

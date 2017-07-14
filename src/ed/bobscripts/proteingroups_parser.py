@@ -31,7 +31,7 @@ def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
   like remove leftover spaces and commas in it then add fold change and FDR score"""
   from math import log
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   
   fdrN = 0.05
   def p_value_key(protItem):
@@ -98,7 +98,7 @@ def ROutputFormatter():
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from root.ed.tools import prot_id_converter
+  from ed.tools import prot_id_converter
   
   protList = []
   headerFlag = True
@@ -232,7 +232,7 @@ def set_fdr(fdrN = 0.05):
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from root.ed.tools import prot_id_converter
+  from ed.tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -261,7 +261,7 @@ def interactor_finder():
 
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   from math import log
   
   print "this is stat parser"
@@ -332,7 +332,7 @@ def protein_name_collector():
 def lfq_parser():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
   This is needed for ttseting later in R, as each measurement there has to have some sort of noise in it"""
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   from random import randint
   # from math import log10
   
@@ -421,7 +421,7 @@ def lfq_parser_2x():
   
   Only include hits which appear at least in two OST samples
   """
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   from random import random
   from math import log10
   
@@ -500,7 +500,7 @@ def spectrum_parser():
   
   This function is a modification of the lfq_parser()
   """
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   from random import random
   # from math import log10
   
@@ -620,7 +620,7 @@ def entry_parser():
   55) Oxidation (M) site positions
   
   """
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   from copy import copy
   from collections import defaultdict
   
@@ -879,7 +879,7 @@ def file_parser():
   """from bob"s proteinGroups.txt take: Majority protein IDs Peptide counts (razor+unique) ['LFQ intensity KO1', 'LFQ intensity KO2', 'LFQ intensity KO3', 'LFQ intensity WT1', 'LFQ intensity WT2', 'LFQ intensity WT3']
   and write them to a new file. do not select contaminants or reverse peptides"""
 
-  from root.ed.tools import file_importer, file_outporter
+  from ed.tools import file_importer, file_outporter
   print "this is file parser"
   inpF = file_importer("bob/24h_proteingroups.csv")
   outF = file_outporter("bob/processed/24h_bobdata.csv")

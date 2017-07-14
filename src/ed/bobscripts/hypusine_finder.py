@@ -9,8 +9,8 @@ def dohh_hyp_finder():
   """take list of DHS and DOHH interactors from the paper 
   "Protein-protein-interaction Network Organization of the Hypusine Modification System" 
   and check if any of them are in the new hypusinylation dataset I made from Bob's 24H T4 data."""
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/DOHH_interactors_published.csv","r") as dohF:
-    with open("/home/mate/workspace/katamari/src/root/ed/datafiles/hypusine-24H-T4-proteomics-27062016.txt","rU") as hypF:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/DOHH_interactors_published.csv","r") as dohF:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/hypusine-24H-T4-proteomics-27062016.txt","rU") as hypF:
       qL = []
       for inpLine in dohF:
         inpL = inpLine.rstrip().split(" ")
@@ -38,8 +38,8 @@ def dohh_hyp_finder():
 def hyp_comp():
   """take list of hypusine containing proteins for two different datasets (24H TCR and Jens' TCR data pxd002928) and compare them to see if they overlap greatly. 
   They should reasonably overlap if the hypusine finding went well."""
-  with open("/home/mate/workspace/katamari/src/root/ed/datafiles/HypusineSites_pxd002928.txt","rU") as bobF:
-    with open("/home/mate/workspace/katamari/src/root/ed/datafiles/hypusine-24H-T4-proteomics-27062016.txt","rU") as jensF:
+  with open("/home/mate/workspace/katamari/src/ed/datafiles/HypusineSites_pxd002928.txt","rU") as bobF:
+    with open("/home/mate/workspace/katamari/src/ed/datafiles/hypusine-24H-T4-proteomics-27062016.txt","rU") as jensF:
       bobList = []
       for bobLine in bobF:
         bobL = bobLine.rstrip().split("\t")
