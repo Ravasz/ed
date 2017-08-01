@@ -6,16 +6,28 @@ Created on 1 Apr 2016
 calculate absolute numbers of proteins using the proteinGroups.txt file. 
 This module is written specifically for Bob's 24H T4 stimulation dataset, 
 but should work with anything else in the same format.
+
+
+started updating for new layout 01-08-2017
+- master done
+
 '''
 
-def master(fileName = "/home/mate/workspace/katamari/src/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt", 
-           outFolder = "/home/mate/workspace/katamari/src/ed/bob/processed/", tagS="abs_quant_24H_T4"):
+def master(fileName, outFolder, tagS="abs_quant_24H_T4"):
   """run all the other scripts in this module in the appropriate order"""
   
   # previous: /home/mate/workspace/katamari/src/root/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt
   # previous: /home/mate/workspace/katamari/src/root/ed/datafiles/CTL_Bob_recalc/txt_CTL_unique razor/proteinGroups.txt
   
   import time 
+  import os.path
+  
+  if fileName == "":
+    fileName = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "24H_T4_recalc", "massSpec", "txt_RS_24hr unique razor", 'proteinGroups.txt')
+    
+  if outFolder == "": 
+    outFolder = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "processed")
+  
   curDate = time.strftime("%H-%M-%d-%m-%Y")
   
   expTag = tagS + "-" + curDate
@@ -91,7 +103,7 @@ def file_parser(fileName, outFolder, expTag):
 def entry_parser(fileName, outFolder, expTag):
   """remove duplicate protein name and total peptide count cell entries"""
   from operator import add
-  from ed.tools import go_term_advanced_lookup
+  from tools import go_term_advanced_lookup
   
   goC = 0
   errC = 0
