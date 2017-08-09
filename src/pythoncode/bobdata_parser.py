@@ -10,6 +10,10 @@ find significantly enriched proteins in bob's data.
 - finally, using the stat_parser function here, take the gene names that have a p value of at least 0.05 and pool them for a DAVID analysis.
 - alternatively to stat_parser, volcano_plotter can be used to prepare data for the volcano plot R script
 - yet another alternative is to use set_fdr on the R output to calculate false discovery rates
+
+update for new layout started 02-08-2017
+- imports done
+
 '''
 
 def main():
@@ -23,16 +27,18 @@ def pipeline_runner():
   entry_parser() # remove duplicates, faulty lines and format the whole thing normally.
   lfq_parser() # replace 0s in lfq reading with random small numbers for t testing purposes
   # open Rstudio and do T testing there
-  from ed.tools import ROutputFormatter
+  from tools import ROutputFormatter
   ROutputFormatter() # reformat R output to something more appealing, add FDR and fold change values
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from ed.tools import prot_id_converter
+  from tools import prot_id_converter
+  import os.path
   
   protList = []
   headerFlag = True
-  with open("../bob/processed/24h_bobprots_up_full.csv","r") as inpF:
+  with open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "processed", "24h_bobprots_up_full.csv"),"r") as inpF:
+    # with open("../bob/processed/24h_bobprots_up_full.csv","r") as inpF:
     for inpLine in inpF:
       if headerFlag:
         headerFlag = False
@@ -165,7 +171,7 @@ def set_fdr(fdrN = 0.05):
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from ed.tools import prot_id_converter
+  from tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -194,7 +200,7 @@ def interactor_finder():
 
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from math import log
   
   print "this is stat parser"
@@ -265,7 +271,7 @@ def protein_name_collector():
 def lfq_parser():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
   This is needed for ttseting later in R, as each measurement there has to have some sort of noise in it"""
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from random import randint
   
   print "this is lfq parser"
@@ -303,7 +309,7 @@ def lfq_parser():
 
 def entry_parser():
   """remove duplicate protein name and total peptide count cell entries from bob's dataset"""
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from operator import add
   
   print "this is entry parser"
@@ -395,7 +401,7 @@ def file_parser():
   """from bob"s proteinGroups.txt take: Majority protein IDs Peptide counts (razor+unique) ['LFQ intensity KO1', 'LFQ intensity KO2', 'LFQ intensity KO3', 'LFQ intensity WT1', 'LFQ intensity WT2', 'LFQ intensity WT3']
   and write them to a new file. do not select contaminants or reverse peptides"""
 
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   print "this is file parser"
   inpF = file_importer("bob/24h_proteingroups.csv")
   outF = file_outporter("bob/processed/24h_bobdata.csv")

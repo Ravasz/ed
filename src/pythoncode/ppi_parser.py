@@ -9,11 +9,40 @@ Then, get all their sequences from entrez and write these out in STDOut.
 
 def main():
   print "this is ppi_parser \n"
-  name_collector()
+  # name_collector()
   # sh3_counter()
+  protname_compare()
 
 
-def intact_parser():
+def protname_compare():
+  """quick script to compare biogrid interactor list to intact interactor list and return a list of all interactors present in at least one database"""
+  import os.path
+  
+  intactList = intact_parser()
+
+  intList = [x.lower() for x in intactList] # convert the list to lowercase
+
+  
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
+  # This is stripped from the biogrid output file by loading it into excel and copying both columns with genes names in it to a single column in textedit. 
+  # I could write one that parses the biogrid output file but I won't as I'm lazy
+  
+  fullList = []
+  
+  for inpLine in inpF:
+    if inpLine.strip().lower() not in fullList:
+      fullList.append(inpLine.strip().lower())
+  
+  for intactI in intList:
+    if intactI.lower() not in fullList:
+      fullList.append(intactI.lower())
+  
+  print "---"
+  
+  for outI in fullList:
+    print outI
+
+def intact_parser(outDataType = "genesymbol"):
   """open ptpn22.txt and extract prey protein uniprot accessions. 
   Convert those to refseq protein accessions.
   Return them as a list.
@@ -26,13 +55,16 @@ def intact_parser():
   todo:
   - retrieve both gene name and full protein name
   """
-  from ed.tools import prot_id_converter, file_importer
+  from tools import prot_id_converter
+  import os.path
   
-  baitStr = "CSK" # gene name of bait protein. Has to be entered all caps
+  baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
   
   # relPath = "ptpn22_ppi_data/ptpn22.txt"
-  relPath = "ptpn22_ppi_data/csk.txt"
-  inpF = file_importer(relPath, "r")
+  # relPath = "ptpn22_ppi_data/csk.txt"
+  #relPath = "data/ptpn22-intact-mi-tab27-07-08-2017.txt"
+  #inpF = file_importer(relPath, "r")
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
   headerFlag = True
   preyL = []
   foundFlagA = False
@@ -86,7 +118,7 @@ def intact_parser():
     
     else: continue
     
-    print inpItem, " ", inpSecItem
+    # print inpItem, " ", inpSecItem
     
     if "\"" not in inpItem and inpItem != "not found" and len(inpItem)>3 and inpItem not in preyL:
       preyL.append(inpItem)
@@ -96,13 +128,16 @@ def intact_parser():
       
 
   inpF.close()
-  idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
+  # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
+  idList = prot_id_converter(preyL, "", outDB=outDataType) # convert uniprot ID to refseq accessions
+  """for idI in idList:
+    print idI"""
   return idList
 
 def name_collector():
   """look up protein interactors, download their fasta sequences to extract their names. 
   Print the names to STDout"""
-  from ed.tools import prot_entrez_fetch
+  from tools import prot_entrez_fetch
   
   resD = {}
   idList = intact_parser() 
@@ -149,8 +184,8 @@ def name_collector():
 def sh3_counter():
   """look up a list of uniprot IDs, download their full genbank entries from the Entrez database 
   and count the number of SH3 domains the interactors have. Print the results to STDout"""
-  from ed.tools import prot_entrez_fetch, prot_id_converter
-  from ed.bobscripts.bobdata_parser import protein_name_collector
+  from tools import prot_entrez_fetch, prot_id_converter
+  from bobdata_parser import protein_name_collector
   # idList = intact_parser() # to use for Ptpn22 interactome
   fullPreyL = protein_name_collector()
   # fullPreyL = ["P20152", "Q8BFZ3", "P17182", "P17742", "P11499"]

@@ -11,9 +11,11 @@ but should work with anything else in the same format.
 started updating for new layout 01-08-2017
 - master done
 
+update done 02-08-2017
+
 '''
 
-def master(fileName, outFolder, tagS="abs_quant_24H_T4"):
+def master(fileName = "", outFolder = "", tagS="abs_quant_24H_T4"):
   """run all the other scripts in this module in the appropriate order"""
   
   # previous: /home/mate/workspace/katamari/src/root/ed/datafiles/24H_T4_recalc/MassSpec/txt_RS_24hr unique razor/proteinGroups.txt
@@ -26,7 +28,7 @@ def master(fileName, outFolder, tagS="abs_quant_24H_T4"):
     fileName = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "24H_T4_recalc", "massSpec", "txt_RS_24hr unique razor", 'proteinGroups.txt')
     
   if outFolder == "": 
-    outFolder = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "processed")
+    outFolder = os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "processed/")
   
   curDate = time.strftime("%H-%M-%d-%m-%Y")
   
@@ -177,6 +179,7 @@ def entry_parser(fileName, outFolder, expTag):
     finD = absolute_quant(outDict)
     
     outN = 0  
+    print "looking up GO terms. This might take several minutes"
     for outDV in sorted(finD.items(), key=lambda x:x[1][0]): # sort the dict based on the ID they have
       outN += 1
       # print outDV[1]
@@ -185,7 +188,9 @@ def entry_parser(fileName, outFolder, expTag):
       try:
         go_term_advanced_lookup(outDV[1][1])
         goC += 1
-        print goC
+        if goC%100 == 0:
+          print ".",
+        # print goC
       except:
         errC += 1
         print outDV[1][1], " not found"
@@ -195,7 +200,7 @@ def entry_parser(fileName, outFolder, expTag):
         outF.write(str(outI) + ",")
       outF.write(str(outDV[1][-1]) + "\n")
   
-    print "unique proteins: ", outN
+    print "\nunique proteins: ", outN
     print "lines parsed: ", cN
     print "GO terms found:", goC
     print "GO_terms not found: ", errC
@@ -229,7 +234,7 @@ def absolute_quant(completeDict):
   for keyS, itemL in completeDict.items(): # calculate the histone intensities in each lane first
     if keyS in histoneIDs:
       histCount += 1
-      print itemL
+      # print itemL
       histIntL[0] += itemL[7]
       histIntL[1] += itemL[8]
       histIntL[2] += itemL[9]
@@ -244,10 +249,10 @@ def absolute_quant(completeDict):
     totIntL[4] += itemL[11]
     totIntL[5] += itemL[12]
 
-  print histIntL
-  print totIntL
+  # print histIntL
+  # print totIntL
       
-  print len(histoneIDs), histCount
+  # print len(histoneIDs), histCount
   
   
   resD = {} # this is the output will all data plus the absolute quantifications

@@ -9,7 +9,7 @@ updated for new project structure 01-08-2017
 '''
 import os.path
 
-inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], 'data', 'abs_quant_CTL-11-15-26-05-20162.txt'),"rU")
+inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "abs_quant_CTL-11-15-26-05-20162.txt"),"rU")
                
 #inpFile = open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_CTL-11-15-26-05-20162.txt","rU")
 

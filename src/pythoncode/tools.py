@@ -243,7 +243,7 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   print "connection successful"
   responseJson = uParsed.read()
   parsedJson = json.loads(responseJson)
-  print parsedJson
+  # print parsedJson
   # parsedJson = [{u'Gene ID': u'54196', u'InputValue': u'Q8CCS6'}, {u'Gene ID': u'99982', u'InputValue': u'Q6ZQ88'}]
   # parsedJson = [{u'GenBank Protein Accession': u'BAC27741//Q8CCS6//EDL36322//AAH55866//NP_062275//XP_006519335//AAC00210////EDL36323', u'InputValue': u'Q8CCS6'}, {u'GenBank Protein Accession': u'AAH19417//XP_006539394//XP_006539393//NP_598633//AAH59885//CBY79415//CBY88367////XP_006539392//EDL29935//Q6ZQ88//BAC97980', u'InputValue': u'Q6ZQ88'}]
   # parsedJson = [{u'GenBank Protein GI': u'9506945//148704376//46396417//26328001//33585929//2351846////148704375//568988212', u'InputValue': u'NP_062275'}, {u'GenBank Protein GI': u'51315882//18044445//224994233////568932208//317440660//37589595//568932212//315003691//148697988//37360004//568932210', u'InputValue': u'NP_598633'}]
