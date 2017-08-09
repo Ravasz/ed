@@ -9,9 +9,10 @@ Then, get all their sequences from entrez and write these out in STDOut.
 
 def main():
   print "this is ppi_parser \n"
-  # name_collector()
+  name_collector()
   # sh3_counter()
-  protname_compare()
+  # protname_compare()
+  # biogrid_parser()
 
 
 def protname_compare():
@@ -42,6 +43,35 @@ def protname_compare():
   for outI in fullList:
     print outI
 
+def biogrid_parser():
+  """open biogrid 2.0 tab format file and extract interactor protein gene IDs. Convert to refseq protein accessions. Return them a list.
+  """
+  
+  import os.path
+  from tools import prot_id_converter
+  
+  print "processing biogrid file"
+  
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-117604-3.4.151.tab2.txt"),"r")
+  
+  idL = []
+  
+  headerFlag = True
+  
+  for inpLine in inpF:
+    if headerFlag:
+      headerFlag = False
+      continue
+    inpList = inpLine.split("\t")[1:3]
+    for inpI in inpList:
+      if inpI not in idL:
+        idL.append(inpI)
+  # print idL
+  
+  idList = prot_id_converter(idL, orgnID = "9606", inpDB = "geneid", outDB="refseqproteingi") # convert uniprot ID to refseq accessions or gene names
+  # print idList
+  return idList
+  
 def intact_parser(outDataType = "genesymbol"):
   """open ptpn22.txt and extract prey protein uniprot accessions. 
   Convert those to refseq protein accessions.
@@ -57,6 +87,8 @@ def intact_parser(outDataType = "genesymbol"):
   """
   from tools import prot_id_converter
   import os.path
+  
+  print "processing intact file"
   
   baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
   
@@ -128,8 +160,9 @@ def intact_parser(outDataType = "genesymbol"):
       
 
   inpF.close()
+  
   # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
-  idList = prot_id_converter(preyL, "", outDB=outDataType) # convert uniprot ID to refseq accessions
+  idList = prot_id_converter(preyL, "", outDB=outDataType) # convert uniprot ID to refseq accessions or gene names
   """for idI in idList:
     print idI"""
   return idList
@@ -140,8 +173,16 @@ def name_collector():
   from tools import prot_entrez_fetch
   
   resD = {}
-  idList = intact_parser() 
-  fullL = prot_entrez_fetch(idList, retM="text", retT="gp").split("//\n")
+  intactIdList = intact_parser("refseqproteingi") 
+  biogridIdList = biogrid_parser()
+  
+  combinedList = biogridIdList
+  
+  for intactI in intactIdList:
+    if intactI not in combinedList:
+      combinedList.append(intactI)
+  
+  fullL = prot_entrez_fetch(combinedList, retM="text", retT="gp").split("//\n")
 
   for fullI in fullL:
     longFlag = False
@@ -162,7 +203,7 @@ def name_collector():
         shortFlag = False
         
       if "DEFINITION" in fullIline[:11]:
-        longName = fullIline[12:]
+        longName = fullIline[12:].split("[")[0]
         longFlag = True
         
       if "     CDS" in fullIline[:11]:

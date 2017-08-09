@@ -22,6 +22,9 @@ def main():
   a = [1, 3, 5]
   a[:] = [x + 2 for x in a]
   print a
+  
+  import Bio
+  print Bio.__version__
 
 def floater():
   from decimal import Decimal

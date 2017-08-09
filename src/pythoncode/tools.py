@@ -12,7 +12,7 @@ def main():
   
   # print prot_id_converter(testL, inpDB = "refseqproteinaccession", outDB = "genesymbol", orgnID="9606")  
   
-  intact_parser()
+  # intact_parser()
 
 
 def file_reader(fileStr,resType="dict"):
@@ -403,6 +403,8 @@ def prot_entrez_fetch(proteinList, retM="text", retT="fasta"):
   """take in a list of protein GI accessions and return their corresponding fasta sequences as a list using Entrez.
   Each returned list item is the fasta header + new line + sequence.
   Do not give it more than 200 GIs at once as requested by entrez.
+  
+  GI accessions are deprecated. need to use something else.
   """
   from Bio import Entrez
   Entrez.email ="mate.ravasz@ed.ac.uk"
@@ -415,6 +417,8 @@ def prot_entrez_fetch(proteinList, retM="text", retT="fasta"):
       raise
     
   proteinList = map(str, proteinList)
+  # print proteinList
+  
   print "connecting to Entrez..."
   requestR = Entrez.epost("protein",id=",".join(proteinList)) # send all UIDs as a single query to entrez. 
   resultO = Entrez.read(requestR)
