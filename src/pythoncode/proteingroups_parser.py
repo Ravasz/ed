@@ -16,12 +16,13 @@ find significantly enriched proteins in maxquant output data. This script is a m
 
 def main():
   print "call a function here to start"
-  ROutputFormatter()
+  # ROutputFormatter()
+  lfq_parser()
 
 def pipeline_runner():
   """do the analysis of proteomics datasets by calling the appropriate functions one after the other.
   Not written yet. - this won't work as I have rewritten entry parser. Will need to move project to git"""
-  file_parser() # take raw data file and extract columns of interest. remove contaminants.
+  # file_parser() # take raw data file and extract columns of interest. remove contaminants.
   entry_parser() # remove duplicates, faulty lines and format the whole thing normally.
   lfq_parser() # replace 0s in lfq reading with random small numbers for t testing purposes
   # open Rstudio and do T testing there
@@ -31,7 +32,7 @@ def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
   like remove leftover spaces and commas in it then add fold change and FDR score"""
   from math import log
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   
   fdrN = 0.05
   def p_value_key(protItem):
@@ -98,7 +99,7 @@ def ROutputFormatter():
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from ed.tools import prot_id_converter
+  from tools import prot_id_converter
   
   protList = []
   headerFlag = True
@@ -232,7 +233,7 @@ def set_fdr(fdrN = 0.05):
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from ed.tools import prot_id_converter
+  from tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -261,7 +262,7 @@ def interactor_finder():
 
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from math import log
   
   print "this is stat parser"
@@ -332,16 +333,22 @@ def protein_name_collector():
 def lfq_parser():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
   This is needed for ttseting later in R, as each measurement there has to have some sort of noise in it"""
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from random import randint
+  import os.path
   # from math import log10
   
   print "this is lfq parser"
   
+  """
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
   outPath = "bob/processed/OST-24-05-2017_combined_no0_1000.csv"
   inpF = file_importer(relPath)
   outF = file_outporter(outPath)  
+  """
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1.csv"),"r")
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"w")
+  
   headerFlag = True
   rowCount = 0
   for inpLine in inpF:
@@ -354,11 +361,16 @@ def lfq_parser():
           break
         else: lfqColCount += 1
       outF.write("ID,Protein ID, Gene name,") # write header into output file
-      for headI in inpList[lfqColCount].split("|"):
-        outF.write(headI + ",")
-      for headI in inpList[lfqColCount + 1].split("|")[:-1]:
-        outF.write(headI + ",")
-      outF.write(inpList[lfqColCount + 1].split("|")[-1] + "\n")
+      if len(inpList[lfqColCount].split("|")) > 1:
+        for headI in inpList[lfqColCount].split("|"):
+          outF.write(headI + ",")
+        for headI in inpList[lfqColCount + 1].split("|")[:-1]:
+          outF.write(headI + ",")
+        outF.write(inpList[lfqColCount + 1].split("|")[-1] + "\n")
+      else:
+        outF.write(inpList[lfqColCount] + ",")
+        outF.write(inpList[lfqColCount + 1] + ",")
+        outF.write(inpList[lfqColCount + 2] + "\n")
       rowCount += 1
       continue
     
@@ -370,7 +382,7 @@ def lfq_parser():
     inpGeneName = max(inpItems[6].split("|"), key=len) # and gene name
     outF.write(inpName + "," + inpGeneName + ",")
     
-    inpLFQ = inpItems[lfqColCount].split("|") + inpItems[lfqColCount + 1].split("|") # get lfq intensity scores
+    inpLFQ = inpItems[lfqColCount].split("|") + inpItems[lfqColCount + 1].split("|") + inpItems[lfqColCount + 2].split("|")# get lfq intensity scores
     # print inpLFQ
     for lfqI in inpLFQ[:-1]: # write lfq values
       if lfqI == "_" or lfqI == "0":
@@ -421,7 +433,7 @@ def lfq_parser_2x():
   
   Only include hits which appear at least in two OST samples
   """
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from random import random
   from math import log10
   
@@ -500,7 +512,7 @@ def spectrum_parser():
   
   This function is a modification of the lfq_parser()
   """
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from random import random
   # from math import log10
   
@@ -620,223 +632,227 @@ def entry_parser():
   55) Oxidation (M) site positions
   
   """
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from copy import copy
   from collections import defaultdict
+  import os.path
   
   print "this is entry parser"
   
-  inPathL = ["bob/processed/proteinGroups - OST-1-09042017.txt","bob/processed/proteinGroups_OST2.txt","bob/processed/proteinGroups_OST3.txt"]
-  outPath = "bob/processed/OST-24-05-2017_combined.csv"
+  # inPathL = ["bob/processed/proteinGroups - OST-1-09042017.txt","bob/processed/proteinGroups_OST2.txt","bob/processed/proteinGroups_OST3.txt"]
+  inpathL = []
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "txt_cav1ko-1-17082017", "proteinGroups.txt"),"r")
+  # outPath = "bob/processed/OST-24-05-2017_combined.csv"
   fileCount = 1
-  outF = file_outporter(outPath)
+  # outF = file_outporter(outPath)
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1.csv"),"w")
   # newFlag = True
   
   finDict = defaultdict(list)
   cN = 0
-  for relPath in inPathL:
-    outDict = {}
-    inpF = file_importer(relPath)
-    headerFlag = True
-    
-    for inpLine in inpF:
-      cN += 1
-      if headerFlag:
-        headerFlag = False
-        headerLine = inpLine
-        continue
-      inpLine = inpLine.strip("\n\r")
-      inpItem = inpLine.split("\t")
-      geneL = inpItem[0].split(";")
-      lenS = len(geneL[0])
-      curGene = geneL[0]
-      for geneI in geneL: # find gene name with the shortest length
-        if len(geneI) < lenS:
-          lenS = len(geneI)
-          curGene = geneI
-      if "__" in curGene: continue # get rid of contaminant lines
-      try: # get rid of wonky lines introduced by excel
-        int(curGene)
-        continue
-      except ValueError: 
-        pass
-
-      if curGene[-2] == "-":
-        curGene = curGene[:-2]
-      if curGene[-3] == "-":
-        curGene = curGene[:-3]
-      
-      # remove ambiguities based on gene name from the entire entry:
-      
-      corrPos = geneL.index(curGene)
-      corrLine = []
-      targetCount = 46 # after the 45th item row in the list, peptide IDs and modification start to appear which are allowed to have multiple entries and do not need to be disambiguated
-      currCount = 1
-      pepFlag = True
-      for inpE in inpItem:
-        currCount += 1
-        if currCount == targetCount:
-          pepFlag = False
-          # print inpE
-        if ";" in inpE and pepFlag:
-          try:
-            corrLine.append(inpE.split(";")[corrPos])
-          except IndexError:
-            corrLine.append(inpE.split(";")[0])
-        else:
-          corrLine.append(inpE.rstrip("\n"))
-
-        
-      if inpItem[6] == "":
-        # print "no protein name found. adding the uniprot ID."
-        inpItem[6] = curGene
-            
-      """
-      try:
-        for inpN in inpItem[4:10]:
-          inpItem[inpItem.index(inpN)] = int(inpN)
-        countFlag = True
-      except ValueError:
-        print inpItem[4:10]
-        countFlag = False
-      if countFlag:
-        if sum(inpItem[4:10]) == 0: continue # there are some unexpressed proteins in there
-        
-      """
-      # print len(corrLine)
-      if curGene in outDict: # handle duplicate protein entries and merge them together
-        # print "%s is duplicate" % curGene
-        if curGene == "Protein IDs": 
-          """
-          quickCount2 = 0
-          for quickDictI in outDict[curGene]:
-            print str(quickCount2) + " " + quickDictI
-            quickCount2 += 1
-          quickList = inpItem
-          quickCount3 = 0
-          for quickImp in quickList:
-            print str(quickCount3) + " " + quickImp
-            quickCount3 += 1         
-          # print inpItem
-          # print outDict[curGene]
-          """
-          continue
-        combList = []
-        
-        """
-        addL = []
-        for i in outDict[curGene][3:]:
-          addL.append(i)
-        addL2 = []
-        for j in corrLine[3:]:
-          addL2.append(i)
-        outL[3:] = map(add, addL, addL2) # admittedly this looks terrible
-        """
-        
-        indexN = 0
-        for cItem in corrLine:
-          # print indexN
-          # print "---"
-          # print len(corrLine)
-          if indexN < 18 or 30 <= indexN <= 43:
-            try:
-              currC = int(cItem)
-              currC = currC + int(outDict[curGene][indexN]) # numbers like peptide counts or LFQ values are added up during merge
-            except ValueError:
-              currC = cItem
-          
-          elif 18 <= indexN <= 25 or 28 <= indexN <= 29: # sequence coverage and scores
-            currC = max([float(cItem),float(outDict[curGene][indexN])])
-          
-          elif 26 <= indexN <= 27 or indexN == 44:
-            """
-            quickCount = 0
-            for corrItem in corrLine:
-              print str(quickCount) + " " + corrItem
-              quickCount += 1
-              
-            import time
-            
-            print relPath
-            print corrLine
-            print outDict[curGene]
-            print "++++++++++++++++++++++++"
-            print indexN
-            time.sleep(0.5)"""
-            currC = cItem
-
-            
-          else:
-            corrL = cItem.split(";")
-            # print indexN
-            # print corrLine
-            # print outDict[curGene][indexN]
-            dictL = outDict[curGene][indexN].split(";")
-            mergeL = copy(dictL)
-            for corrI in corrL:
-              if corrI not in dictL:
-                mergeL.append(corrI)
-            
-            currC = ";".join(mergeL)
-
-          combList.append(currC)
-
-          
-          indexN +=1
-        
-        
-        combList[-1] = "merged"    
-        outDict[curGene] = combList 
-        # print "merged:"
-        # print combList
-      else:
-        corrLine.append("unique")
-        outDict[curGene] = corrLine
+  # for relPath in inPathL:
+  outDict = {}
+  # inpF = file_importer(relPath)
+  headerFlag = True
   
-      
-    print fileCount
-    
+  for inpLine in inpF:
+    cN += 1
+    if headerFlag:
+      headerFlag = False
+      headerLine = inpLine
+      continue
+    inpLine = inpLine.strip("\n\r")
+    inpItem = inpLine.split("\t")
+    geneL = inpItem[0].split(";")
+    lenS = len(geneL[0])
+    curGene = geneL[0]
+    for geneI in geneL: # find gene name with the shortest length
+      if len(geneI) < lenS:
+        lenS = len(geneI)
+        curGene = geneI
+    if "__" in curGene: continue # get rid of contaminant lines
+    try: # get rid of wonky lines introduced by excel
+      int(curGene)
+      continue
+    except ValueError: 
+      pass
 
-    #   if not newFlag: print fileCount, testKey, finDict[testKey]     
-    # if newFlag:
-    #   newFlag = False
+    if curGene[-2] == "-":
+      curGene = curGene[:-2]
+    if curGene[-3] == "-":
+      curGene = curGene[:-3]
     
-    for outKey,outValue in outDict.items(): 
-      if outKey in finDict: # add modified dicts together into single, unified dict
-        # print fileCount, finDict[outKey]
-        # print outValue
+    # remove ambiguities based on gene name from the entire entry:
+    
+    corrPos = geneL.index(curGene)
+    corrLine = []
+    targetCount = 46 # after the 45th item row in the list, peptide IDs and modification start to appear which are allowed to have multiple entries and do not need to be disambiguated
+    currCount = 1
+    pepFlag = True
+    for inpE in inpItem:
+      currCount += 1
+      if currCount == targetCount:
+        pepFlag = False
+        # print inpE
+      if ";" in inpE and pepFlag:
+        try:
+          corrLine.append(inpE.split(";")[corrPos])
+        except IndexError:
+          corrLine.append(inpE.split(";")[0])
+      else:
+        corrLine.append(inpE.rstrip("\n"))
+
+      
+    if inpItem[6] == "":
+      # print "no protein name found. adding the uniprot ID."
+      inpItem[6] = curGene
+          
+    """
+    try:
+      for inpN in inpItem[4:10]:
+        inpItem[inpItem.index(inpN)] = int(inpN)
+      countFlag = True
+    except ValueError:
+      print inpItem[4:10]
+      countFlag = False
+    if countFlag:
+      if sum(inpItem[4:10]) == 0: continue # there are some unexpressed proteins in there
+      
+    """
+    # print len(corrLine)
+    if curGene in outDict: # handle duplicate protein entries and merge them together
+      # print "%s is duplicate" % curGene
+      if curGene == "Protein IDs": 
+        """
+        quickCount2 = 0
+        for quickDictI in outDict[curGene]:
+          print str(quickCount2) + " " + quickDictI
+          quickCount2 += 1
+        quickList = inpItem
+        quickCount3 = 0
+        for quickImp in quickList:
+          print str(quickCount3) + " " + quickImp
+          quickCount3 += 1         
+        # print inpItem
+        # print outDict[curGene]
+        """
+        continue
+      combList = []
+      
+      """
+      addL = []
+      for i in outDict[curGene][3:]:
+        addL.append(i)
+      addL2 = []
+      for j in corrLine[3:]:
+        addL2.append(i)
+      outL[3:] = map(add, addL, addL2) # admittedly this looks terrible
+      """
+      
+      indexN = 0
+      for cItem in corrLine:
+        # print indexN
+        # print "---"
+        # print len(corrLine)
+        if indexN < 18 or 30 <= indexN <= 43:
+          try:
+            currC = int(cItem)
+            currC = currC + int(outDict[curGene][indexN]) # numbers like peptide counts or LFQ values are added up during merge
+          except ValueError:
+            currC = cItem
+        
+        elif 18 <= indexN <= 25 or 28 <= indexN <= 29: # sequence coverage and scores
+          currC = max([float(cItem),float(outDict[curGene][indexN])])
+        
+        elif 26 <= indexN <= 27 or indexN == 44:
+          """
+          quickCount = 0
+          for corrItem in corrLine:
+            print str(quickCount) + " " + corrItem
+            quickCount += 1
+            
+          import time
+          
+          print relPath
+          print corrLine
+          print outDict[curGene]
+          print "++++++++++++++++++++++++"
+          print indexN
+          time.sleep(0.5)"""
+          currC = cItem
+
+          
+        else:
+          corrL = cItem.split(";")
+          # print indexN
+          # print corrLine
+          # print outDict[curGene][indexN]
+          dictL = outDict[curGene][indexN].split(";")
+          mergeL = copy(dictL)
+          for corrI in corrL:
+            if corrI not in dictL:
+              mergeL.append(corrI)
+          
+          currC = ";".join(mergeL)
+
+        combList.append(currC)
+
+        
+        indexN +=1
+      
+      
+      combList[-1] = "merged"    
+      outDict[curGene] = combList 
+      # print "merged:"
+      # print combList
+    else:
+      corrLine.append("unique")
+      outDict[curGene] = corrLine
+
+    
+  print fileCount
+  
+
+  #   if not newFlag: print fileCount, testKey, finDict[testKey]     
+  # if newFlag:
+  #   newFlag = False
+  
+  for outKey,outValue in outDict.items(): 
+    if outKey in finDict: # add modified dicts together into single, unified dict
+      # print fileCount, finDict[outKey]
+      # print outValue
+      outIndex = 0
+      for outItem in outValue:
+        finDict[outKey][outIndex].append(outItem)
+        outIndex += 1
+      # print finDict[outKey]
+
+    else:  # or just add new entries
+      if fileCount == 1:
+        for outItem in outValue:
+          finDict[outKey].append([outItem])
+      
+      else: # fill up entries that were not present in the previous cycle
+        loopCount = 0
+        while loopCount < fileCount - 1:
+          for i in range(len(outValue)):
+            if len(finDict[outKey]) == i:
+              finDict[outKey].append([])
+            else:
+              finDict[outKey][i].append("")
+          loopCount += 1
         outIndex = 0
         for outItem in outValue:
-          finDict[outKey][outIndex].append(outItem)
+          # print finDict[outKey]
+          finDict[outKey][outIndex].append(outItem)          
           outIndex += 1
-        # print finDict[outKey]
 
-      else:  # or just add new entries
-        if fileCount == 1:
-          for outItem in outValue:
-            finDict[outKey].append([outItem])
-        
-        else: # fill up entries that were not present in the previous cycle
-          loopCount = 0
-          while loopCount < fileCount - 1:
-            for i in range(len(outValue)):
-              if len(finDict[outKey]) == i:
-                finDict[outKey].append([])
-              else:
-                finDict[outKey][i].append("")
-            loopCount += 1
-          outIndex = 0
-          for outItem in outValue:
-            # print finDict[outKey]
-            finDict[outKey][outIndex].append(outItem)          
-            outIndex += 1
+  for testKey in finDict: # fill up entries in result dict which were not present in previous file
+    if len(finDict[testKey][0]) < fileCount:
+      for i in range(len(finDict[testKey])):
+        finDict[testKey][i].append("")
 
-    for testKey in finDict: # fill up entries in result dict which were not present in previous file
-      if len(finDict[testKey][0]) < fileCount:
-        for i in range(len(finDict[testKey])):
-          finDict[testKey][i].append("")
-
-    fileCount += 1
+  if len(inpathL) > 1: fileCount += 1 # this is needed if multiple files are parsed
   for finK, finV in finDict.items():
     for finI in finV[-1]:
       if finI <> "unique" and finI <> "":
@@ -847,10 +863,31 @@ def entry_parser():
   outN = 0  
   # prepare header for file:
   headList = headerLine.strip("\n\r").split("\t")
-  for headerItem in headList[:-1]:
-    headerI = headerItem.replace(",",".")
-    outF.write(headerI + "-1|" + headerI + "-2|" + headerI + "-3\t")
-  outF.write(headList[-1] + "-1|" + headList[-1] + "-2|" + headList[-1] + "-3\n")
+  if fileCount > 1:
+    for headerItem in headList[:-1]:
+      headerI = headerItem.replace(",",".")
+      headerCount = 1
+      while headerCount < fileCount:
+        outF.write(headerI + "-" + str(headerCount) + "|")
+        headerCount += 1  
+      outF.write(headerI + "-" + str(headerCount) + "\t")
+      
+    headerCount = 1
+    while headerCount < fileCount:
+      outF.write(headList[-1] + "-" + str(headerCount) + "|")
+      headerCount += 1
+    
+    outF.write(headList[-1] + "-" + str(headerCount) + "\n")
+
+  elif fileCount == 1:
+    for headerItem in headList[:-1]:
+      headerI = headerItem.replace(",",".")    
+      outF.write(headerI + "\t")
+    outF.write(headList[-1].replace(",",".") + "\n")
+  
+  else:
+    print "number of input files should be at least one. Got less somehow"
+    raise ValueError
     
   
   for outDK, outDV in finDict.items(): # write out assembled results to a file
@@ -858,19 +895,24 @@ def entry_parser():
     if len(outDK) > 30: print "this line should not be displayed"
     # print outDV[1]
     # if outN == 100: break
+    nameCount = 0
     for outI in outDV:
+      # if nameCount == 0: print outI
       for outPiece in outI[:-1]:
         outU = outPiece.replace(",",".")
         if outU == "": outF.write("_|")
         else: outF.write(str(outU) + "|")
-      if outI[-1] == "": outF.write("_\t")
+      if outI[-1] == "": # handle missing entries
+        if nameCount == 6: outF.write(outDV[0][0] + "\t") # replace missing gene names with their uniprot ID
+        else: outF.write("_\t")
       else: outF.write(str(outI[-1]).replace(",",".") + "\t")
+      nameCount += 1
     outF.write("\n")
   
 
   print "unique proteins: ", outN
   print "lines parsed: ", cN
-  print headerLine
+  # print headerLine
   inpF.close()
   outF.close()
   
@@ -879,7 +921,7 @@ def file_parser():
   """from bob"s proteinGroups.txt take: Majority protein IDs Peptide counts (razor+unique) ['LFQ intensity KO1', 'LFQ intensity KO2', 'LFQ intensity KO3', 'LFQ intensity WT1', 'LFQ intensity WT2', 'LFQ intensity WT3']
   and write them to a new file. do not select contaminants or reverse peptides"""
 
-  from ed.tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   print "this is file parser"
   inpF = file_importer("bob/24h_proteingroups.csv")
   outF = file_outporter("bob/processed/24h_bobdata.csv")
@@ -900,6 +942,55 @@ def file_parser():
   inpF.close()
   outF.close()
   print cN
+  
+def crapome_parser():
+  """take crapome 1.1 tab delimited file as input and add it to the output of the lfq_parser method in proteingroups_parser.py.
+  proteins not present in the database shall also be included."""
+  import os.path
+  
+  # contTreshold = 30 # set this to the desired contamination score
+  resD = {}
+  
+  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
+  
+  headerFlag = True
+  
+  fileLength = 0
+  for inpLine in crapFile: # parse crapome output file
+    if headerFlag:
+      headerFlag = False
+      continue
+    fileLength += 1
+    lineList = inpLine.split("\t")
+    if lineList[2] == "": continue
+    elif len(lineList) > 2: contScore = int(lineList[2].split("/")[0])
+    else: contScore = 0
+    
+    # if contScore < contTreshold:
+    resD[lineList[0]] = contScore
+  
+  # print "Contaminant treshold: " + str(contTreshold)
+  
+  print "lines parsed: " + str(fileLength)
+  print "Number of results: " + str(len(resD))
+      
+  inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
+  
+  headerFlag = True
+  for inpLine in inpFile: # parse the input file for crapome and add crapome results to it
+    inpList = inpLine.rstrip("\n").split(",")
+    for inpI in inpList:
+      outF.write(inpI + ",")
+    
+    if headerFlag: 
+      outF.write("Crapome score")
+      headerFlag = False
+    elif inpList[2].upper() in resD: outF.write(str(resD[inpList[2].upper()]))
+    else: outF.write("0")
+    
+    outF.write("\n")
+  print "results written to file"
 
   
 if __name__ == "__main__":

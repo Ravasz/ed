@@ -187,15 +187,16 @@ def name_collector():
   for fullI in fullL:
     longFlag = False
     shortFlag = False
+    completeFlag = True
     longName = ""
     shortName = ""
     
     for fullIline in fullI.split("\n"):
       
-      if longFlag:
+      if longFlag and not completeFlag:
         if fullIline[:9] != "ACCESSION":
           longName += " "
-          longName += fullIline.lstrip(" ")
+          longName += fullIline.lstrip(" ").split("[")[0]
         longFlag = False
       
       if shortFlag:
@@ -203,7 +204,11 @@ def name_collector():
         shortFlag = False
         
       if "DEFINITION" in fullIline[:11]:
+        completeFlag = False
+        # print fullIline
         longName = fullIline[12:].split("[")[0]
+        if len(fullIline[12:].split("[")) > 1:
+          completeFlag = True
         longFlag = True
         
       if "     CDS" in fullIline[:11]:
@@ -313,7 +318,10 @@ def sh3_counter():
 def intact_publications():
   """open orc6.txt and extract publication first authors and pubmed IDs. 
   print results to STDout"""
-  with open("orc6.txt","r") as inpF:
+  
+  import os.path
+  with open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "orc6.txt"),"r") as inpF:
+    #with open("orc6.txt","r") as inpF:
     headerFlag = True
     pubD = {}
     pubmedIDList = []
