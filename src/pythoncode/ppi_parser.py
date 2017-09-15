@@ -9,8 +9,8 @@ Then, get all their sequences from entrez and write these out in STDOut.
 
 def main():
   print "this is ppi_parser \n"
-  name_collector()
-  # sh3_counter()
+  # name_collector()
+  sh3_counter()
   # protname_compare()
   # biogrid_parser()
 
@@ -38,10 +38,14 @@ def protname_compare():
     if intactI.lower() not in fullList:
       fullList.append(intactI.lower())
   
-  print "---"
+  # print "---"
   
+  titleL = []
+
   for outI in fullList:
-    print outI
+    titleL.append(outI.upper())
+    print outI.upper()
+  return titleL
 
 def biogrid_parser():
   """open biogrid 2.0 tab format file and extract interactor protein gene IDs. Convert to refseq protein accessions. Return them a list.
@@ -218,7 +222,7 @@ def name_collector():
       resD[shortName.upper()] = longName
       
   for j,k in resD.items():
-    print j, ": ", k
+    print j #, ": ", k
   print len(resD)
   
   """fastaL = prot_entrez_fetch(idList, retM="text", retT="fasta")
@@ -231,11 +235,12 @@ def sh3_counter():
   """look up a list of uniprot IDs, download their full genbank entries from the Entrez database 
   and count the number of SH3 domains the interactors have. Print the results to STDout"""
   from tools import prot_entrez_fetch, prot_id_converter
-  from bobdata_parser import protein_name_collector
-  # idList = intact_parser() # to use for Ptpn22 interactome
-  fullPreyL = protein_name_collector()
+  # from bobdata_parser import protein_name_collector
+  fullPreyL = protname_compare()
+  # fullPreyL = intact_parser() # to use for Ptpn22 interactome
+  # fullPreyL = protein_name_collector() - use for Bob's data
   # fullPreyL = ["P20152", "Q8BFZ3", "P17182", "P17742", "P11499"]
-  print fullPreyL
+  # print fullPreyL
   if len(fullPreyL) > 200: # chop up very large lists of uniprot IDs to batches of 100
     maxBatch = (len(fullPreyL)/200) + 1
     lenCount = 0
@@ -271,8 +276,11 @@ def sh3_counter():
       
         
   else: 
-    idList = prot_id_converter(fullPreyL, "10090", outDB="refseqproteingi")
-    seqL = prot_entrez_fetch(idList, retM="gb", retT="text").split("\n") # fetch the complete genbank entries from entrez using this function from tools.py
+    # idList = prot_id_converter(fullPreyL, "10090", outDB="refseqproteingi")
+    idList = prot_id_converter(fullPreyL, "9606", inpDB = "genesymbol", outDB="refseqproteingi")
+    # print len(idList)
+    seqL = prot_entrez_fetch(idList, retM="text", retT="gp").split("\n") # fetch the complete genbank entries from entrez using this function from tools.py
+    # print len(seqL)
   
   """
   dumpStr = ""
@@ -291,6 +299,7 @@ def sh3_counter():
   protCount = 0
   shProtCount = 0
   for flatLine in seqL:
+    # print flatLine
     if flatLine[:10]  == "LOCUS     ": # this is usually the title of an entrez flatfile and contains the protien name 
       protCount+= 1
       newProtFlag = True

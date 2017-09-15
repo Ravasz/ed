@@ -333,7 +333,7 @@ def protein_name_collector():
 def lfq_parser():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
   This is needed for ttseting later in R, as each measurement there has to have some sort of noise in it"""
-  from tools import file_importer, file_outporter
+  # from tools import file_importer, file_outporter
   from random import randint
   import os.path
   # from math import log10
@@ -434,7 +434,7 @@ def lfq_parser_2x():
   Only include hits which appear at least in two OST samples
   """
   from tools import file_importer, file_outporter
-  from random import random
+  # from random import random
   from math import log10
   
   print "this is lfq parser_2x"
@@ -632,7 +632,7 @@ def entry_parser():
   55) Oxidation (M) site positions
   
   """
-  from tools import file_importer, file_outporter
+  # from tools import file_importer, file_outporter
   from copy import copy
   from collections import defaultdict
   import os.path

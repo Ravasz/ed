@@ -428,7 +428,7 @@ def prot_entrez_fetch(proteinList, retM="text", retT="fasta"):
   print "connection successful"
   if retT == "fasta":
     return entrez_fasta_parser(handleO)
-  elif retM == "text" and retT == "gp": # use "gp" for genpelt faltfile format, and "gb" for genbank flatfile for genes
+  elif retM == "text" and retT == "gp": # use "gp" for genpept flatfile format, and "gb" for genbank flatfile for genes
     return handleO.read()
   else:
     print "this data format was not expected:"
