@@ -1,6 +1,6 @@
 # take the IBAQ values from Bob's dataset, put all measurements into a single dataframe, and plot a histogram with their log2 values
 
-setwd("/home/mate/workspace/katamari/src/root/ed/bob")
+setwd("/home/mate/code/ed/src/data/bob")
 fileDf <- read.csv("bob_lfq.csv", sep = ",", stringsAsFactors = FALSE, header = TRUE)
 
 logD <- as.matrix(fileDf[, 1:6]) # the log calculation really works if in a matrix

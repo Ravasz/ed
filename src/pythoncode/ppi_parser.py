@@ -10,8 +10,8 @@ Then, get all their sequences from entrez and write these out in STDOut.
 def main():
   print "this is ppi_parser \n"
   # name_collector()
-  sh3_counter()
-  # protname_compare()
+  # sh3_counter()
+  protname_compare()
   # biogrid_parser()
 
 
@@ -24,7 +24,8 @@ def protname_compare():
   intList = [x.lower() for x in intactList] # convert the list to lowercase
 
   
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-113578-3.4.152.tab2-genes.txt"),"rU") 
+  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
   # This is stripped from the biogrid output file by loading it into excel and copying both columns with genes names in it to a single column in textedit. 
   # I could write one that parses the biogrid output file but I won't as I'm lazy
   
@@ -100,7 +101,8 @@ def intact_parser(outDataType = "genesymbol"):
   # relPath = "ptpn22_ppi_data/csk.txt"
   #relPath = "data/ptpn22-intact-mi-tab27-07-08-2017.txt"
   #inpF = file_importer(relPath, "r")
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
+  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptp4a1.txt"),"r")
   headerFlag = True
   preyL = []
   foundFlagA = False
