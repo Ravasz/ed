@@ -88,6 +88,7 @@ for fileName in os.listdir(directoryS): # go through all files in the folder
     else:
         continue
 
+outDataF = open(os.path.join(directoryS , "ost-ptpn22-sizes-summary.csv"),"w")
 listCount = 0
 ostSingleList = []
 print "ost bands:"
