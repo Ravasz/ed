@@ -12,50 +12,543 @@ find significantly enriched proteins in maxquant output data. This script is a m
 - finally, using the stat_parser function here, take the gene names that have a p value of at least 0.05 and pool them for a DAVID analysis.
 - alternatively to stat_parser, volcano_plotter can be used to prepare data for the volcano plot R script
 - yet another alternative is to use set_fdr on the R output to calculate false discovery rates
+
+
+cfg file name: proteingroups_analyzer_params.cfg
+
+cfg file layout:
+<Files>
+/home/mate/code/ed/src/data/cav1ko/txt_cav1ko-1-17082017/proteinGroups.txt
+/home/mate/code/ed/src/data/cav1ko/txt_cav1ko_11_10_2017/proteinGroups.txt
+
+</Files>
+
+<Outputfolder>
+/home/mate/code/ed/src/data/cav1ko/processed
+</Outputfolder>
+
+<Samples>
+<Ungrouped>
+</Ungrouped>
+<Group1>
+</Group1>
+<Group2>
+</Group2>
+<Group3>
+</Group3>
+<Group4>
+</Group4>
+</Samples>
+
 '''
 
 def main():
   print "call a function here to start"
-  pipeline_runner()
+  # file_analyzer()
+  file_combiner()
+  
 
-def pipeline_runner():
-  """do the analysis of proteomics datasets by calling the appropriate functions one after the other."""
+def file_analyzer():
+  """
+  extract column names from the input files in proteingroups_analyzer_params.cfg
+  and extract samples names from them.
+  Write sample names into the cfg file into the ungrouped section for the user to group.
   
-  for fileI in file_picker():
-    column_finder(fileI)
-    
-  # entry_parser()
-  # lfq_parser()
-   
-def file_picker():
-  """open files for analysis from proteingroups_analyzer_params.cfg in the same directory"""
+  needs column_finder, empty_line_remover, and file_picker
+  """
+  import os.path, sys
   
-  import os.path
-  import sys
-  
-  print "this is file_picker"
-  
-  fileL = []
-  
-  if os.path.isfile("proteingroups_analyzer_params.cfg"):
-    cfgFile = open("proteingroups_analyzer_params.cfg","r")
+  global fileCount
+  fileCount = 1
+  if os.path.isfile("proteingroups_analyzer_params.cfg"): # check if cfg file exists
+    pass
   else:
     print "the config file named proteingroups_analyzer_params.cfg was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script"
     sys.exit(0) # end the program if config file is not found
-  
-  for dataFileS in cfgFile:
-    dataFileN = dataFileS.rstrip("\r\n")
-    if not os.path.isfile(dataFileN):
-      print "file %s not found. Please check proteingroups_analyzer_params.cfg and try again." % (dataFileN,)
-      sys.exit(0)
-    fileL.append(dataFileN)
     
-  cfgFile.close()
-  return fileL
+  with open("proteingroups_analyzer_params.cfg","r") as cfgF: # locate all the groups in cfgFile
+    groupList = []
+    samplesFlag = False
+    for cfgLine in cfgF:
+      if cfgLine == "<Samples>\n": 
+        samplesFlag = True
+        continue
+      elif cfgLine == "</Samples>\n" : 
+        samplesFlag = False
+        continue
+      
+      if samplesFlag and "<Group" in cfgLine:
+        groupList.append(cfgLine.rstrip("\n"))
+  
+  empty_line_remover("<Ungrouped>") # remove all empty lines from cfgFile groups section
+  for groupI in groupList:
+    empty_line_remover(groupI)
+
+  for fileI in file_picker("proteingroups_analyzer_params.cfg"):
+    column_finder(fileI)
+    fileCount += 1
+
+def file_combiner():
+  """take all the files from the cfg file and combine them to a single file. 
+  Read in the next file line by line.
+  Remove contaminants and reverse proteins.
+  Use uniprot ID as key and check if the protein is already present.
+  add new entry to existing columns or a new line.
+  """
+
+  from collections import defaultdict
+  from copy import copy
+  import sys, os.path
+  
+  print "this is file_combiner"
+  
+
+  inpFileList = []
+  groupList = []
+  
+  with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
+
+    for cfgLine in cfgFile:
+      
+      if cfgLine == "<Files>\n": # collect file names here
+        lineCount = 0
+        while True:
+          newLine = cfgFile.next()
+          lineCount += 1
+          if lineCount == 20: 
+            print "something terrible has happened!"
+            sys.exit(0)
+          if newLine == "\n": continue
+          elif newLine == "</Files>\n":
+            break
+          else: 
+            inpFileList.append(newLine.rstrip("\n"))
+        continue
+      
+      if cfgLine == "<Outputfolder>\n": # collect output folder here
+        lineCount = 0
+        while True:
+          newLine = cfgFile.next()
+          lineCount += 1
+          if lineCount == 20: 
+            print "something terrible has happened!"
+            sys.exit(0)
+          if newLine == "\n": continue
+          else: 
+            outputFolder = newLine.rstrip("\n")
+            break
+            
+      
+      if cfgLine == "<Samples>\n": # place all samples from all groups into a single list 
+        lineCount = 0
+        while True:
+          newLine = cfgFile.next()
+
+          if newLine.rstrip("\n") == "</Samples>": break  
+          lineCount += 1
+          if lineCount == 40: 
+            print "something terrible has happened!"
+            sys.exit(0)
+          if newLine == "\n": continue
+          if "<Group" in newLine:
+            subLineCount = 0
+            while True:
+              newLine = cfgFile.next()
+              if "</Group" in newLine:
+                break
+              subLineCount += 1
+              if subLineCount == 10: 
+                print "something terrible has happened!"
+                sys.exit(0)
+              if newLine == "\n": continue
+              
+              groupList.append(newLine.rstrip("\n"))
+
+  if len(groupList) < 2:
+    print "there should be at least 2 groups to compare. Please assign samples to groups in the cfg file."
+    sys.exit(0)
+  
+  print inpFileList
+  print groupList
+      
+  if os.path.isdir(outputFolder):    # check if output folder is correctly extracted from cfg file
+    print outputFolder
+  else:
+    print "output folder named %s not found. please check the outputfolder area in the config file and add a proper folder name in there" % (outputFolder,)
+    sys.exit(0)
+
+  # by this point everything is collected from the cfg file that we need      
+  
+  outF = open(os.path.join(outputFolder, "combined.csv"),"w")
+  
+  # write header of output file: 
+  
+  outF.write("Majority protein ID,Protein name,Gene name,") 
+  for j in groupList:
+    outF.write("Peptides " + j + ",")
+  
+  for j in groupList:
+    outF.write("Razor + unique peptides " + j + ",")
+    
+  for j in groupList:
+    outF.write("LFQ intensity " + j + ",")
+    
+  outF.write("Fold change (Group1/Group2),Pvalue(Group1/Group2)\n")
     
 
+  
+    
+  
+#   dataCounter = 0
+# 
+#   for dataFile in inpFileList:
+#     dataCounter += 1
+#     currGroupL = []
+#     for groupI in groupList:
+#       groupN = int(groupI.split("-")[-1])
+#       if groupN == dataCounter:
+#         currGroupL.append(groupI[:groupI.rindex("-")])
+#     
+#     
+#     with open(dataFile,"r") as inpF:
+# 
+#       finDict = defaultdict(list)
+#       cN = 0
+#       outDict = {}
+#       headerFlag = True
+#        
+#       for inpLine in inpF:
+#         cN += 1
+#         if headerFlag:
+#           headerFlag = False
+#           inpItem = inpLine.rstrip("\r\n").split("\t")
+#           for inpI in inpItem:
+#             if inpI 
+# 
+#           continue
+#         inpLine = inpLine.rstrip("\r\n")
+#     inpItem = inpLine.split("\t")
+#     geneL = inpItem[0].split(";")
+#     lenS = len(geneL[0])
+#     curGene = geneL[0]
+#     for geneI in geneL: # find gene name with the shortest length
+#       if len(geneI) < lenS:
+#         lenS = len(geneI)
+#         curGene = geneI
+#     if "__" in curGene: continue # get rid of contaminant lines
+#     """
+#     try: # get rid of wonky lines introduced by excel
+#       int(curGene)
+#       continue
+#     except ValueError: 
+#       pass
+#     """
+# 
+#     if curGene[-2] == "-":
+#       curGene = curGene[:-2]
+#     if curGene[-3] == "-":
+#       curGene = curGene[:-3]
+#     
+#     # remove ambiguities based on gene name from the entire entry:
+#     
+#     corrPos = geneL.index(curGene)
+#     corrLine = []
+#     targetCount = 46 # after the 45th item row in the list, peptide IDs and modification start to appear which are allowed to have multiple entries and do not need to be disambiguated
+#     currCount = 1
+#     pepFlag = True
+#     for inpE in inpItem:
+#       currCount += 1
+#       if currCount == targetCount:
+#         pepFlag = False
+#         # print inpE
+#       if ";" in inpE and pepFlag:
+#         try:
+#           corrLine.append(inpE.split(";")[corrPos])
+#         except IndexError:
+#           corrLine.append(inpE.split(";")[0])
+#       else:
+#         corrLine.append(inpE.rstrip("\n"))
+# 
+#       
+#     if inpItem[6] == "":
+#       # print "no protein name found. adding the uniprot ID."
+#       inpItem[6] = curGene
+#           
+#     """
+#     try:
+#       for inpN in inpItem[4:10]:
+#         inpItem[inpItem.index(inpN)] = int(inpN)
+#       countFlag = True
+#     except ValueError:
+#       print inpItem[4:10]
+#       countFlag = False
+#     if countFlag:
+#       if sum(inpItem[4:10]) == 0: continue # there are some unexpressed proteins in there
+#       
+#     """
+#     # print len(corrLine)
+#     if curGene in outDict: # handle duplicate protein entries and merge them together
+#       # print "%s is duplicate" % curGene
+#       if curGene == "Protein IDs": 
+#         """
+#         quickCount2 = 0
+#         for quickDictI in outDict[curGene]:
+#           print str(quickCount2) + " " + quickDictI
+#           quickCount2 += 1
+#         quickList = inpItem
+#         quickCount3 = 0
+#         for quickImp in quickList:
+#           print str(quickCount3) + " " + quickImp
+#           quickCount3 += 1         
+#         # print inpItem
+#         # print outDict[curGene]
+#         """
+#         continue
+#       combList = []
+#       
+#       """
+#       addL = []
+#       for i in outDict[curGene][3:]:
+#         addL.append(i)
+#       addL2 = []
+#       for j in corrLine[3:]:
+#         addL2.append(i)
+#       outL[3:] = map(add, addL, addL2) # admittedly this looks terrible
+#       """
+#       
+#       indexN = 0
+#       for cItem in corrLine:
+#         # print indexN
+#         # print "---"
+#         # print len(corrLine)
+#         if indexN < 18 or 30 <= indexN <= 43:
+#           try:
+#             currC = int(cItem)
+#             currC = currC + int(outDict[curGene][indexN]) # numbers like peptide counts or LFQ values are added up during merge
+#           except ValueError:
+#             currC = cItem
+#         
+#         elif 18 <= indexN <= 25 or 28 <= indexN <= 29: # sequence coverage and scores
+#           currC = max([float(cItem),float(outDict[curGene][indexN])])
+#         
+#         elif 26 <= indexN <= 27 or indexN == 44:
+#           """
+#           quickCount = 0
+#           for corrItem in corrLine:
+#             print str(quickCount) + " " + corrItem
+#             quickCount += 1
+#             
+#           import time
+#           
+#           print relPath
+#           print corrLine
+#           print outDict[curGene]
+#           print "++++++++++++++++++++++++"
+#           print indexN
+#           time.sleep(0.5)"""
+#           currC = cItem
+# 
+#           
+#         else:
+#           corrL = cItem.split(";")
+#           # print indexN
+#           # print corrLine
+#           # print outDict[curGene][indexN]
+#           dictL = outDict[curGene][indexN].split(";")
+#           mergeL = copy(dictL)
+#           for corrI in corrL:
+#             if corrI not in dictL:
+#               mergeL.append(corrI)
+#           
+#           currC = ";".join(mergeL)
+# 
+#         combList.append(currC)
+# 
+#         
+#         indexN +=1
+#       
+#       
+#       combList[-1] = "merged"    
+#       outDict[curGene] = combList 
+#       # print "merged:"
+#       # print combList
+#     else:
+#       corrLine.append("unique")
+#       outDict[curGene] = corrLine
+# 
+#     
+#   print fileCount
+#   
+# 
+#   #   if not newFlag: print fileCount, testKey, finDict[testKey]     
+#   # if newFlag:
+#   #   newFlag = False
+#   
+#   for outKey,outValue in outDict.items(): 
+#     if outKey in finDict: # add modified dicts together into single, unified dict
+#       # print fileCount, finDict[outKey]
+#       # print outValue
+#       outIndex = 0
+#       for outItem in outValue:
+#         finDict[outKey][outIndex].append(outItem)
+#         outIndex += 1
+#       # print finDict[outKey]
+# 
+#     else:  # or just add new entries
+#       if fileCount == 1:
+#         for outItem in outValue:
+#           finDict[outKey].append([outItem])
+#       
+#       else: # fill up entries that were not present in the previous cycle
+#         loopCount = 0
+#         while loopCount < fileCount - 1:
+#           for i in range(len(outValue)):
+#             if len(finDict[outKey]) == i:
+#               finDict[outKey].append([])
+#             else:
+#               finDict[outKey][i].append("")
+#           loopCount += 1
+#         outIndex = 0
+#         for outItem in outValue:
+#           # print finDict[outKey]
+#           finDict[outKey][outIndex].append(outItem)          
+#           outIndex += 1
+# 
+#   for testKey in finDict: # fill up entries in result dict which were not present in previous file
+#     if len(finDict[testKey][0]) < fileCount:
+#       for i in range(len(finDict[testKey])):
+#         finDict[testKey][i].append("")
+# 
+#   if len(inpathL) > 1: fileCount += 1 # this is needed if multiple files are parsed
+#   for finK, finV in finDict.items():
+#     for finI in finV[-1]:
+#       if finI <> "unique" and finI <> "":
+#         print finK, finV
+# 
+#     
+#   
+#   outN = 0  
+#   # prepare header for file:
+#   headList = headerLine.strip("\n\r").split("\t")
+#   if fileCount > 1:
+#     for headerItem in headList[:-1]:
+#       headerI = headerItem.replace(",",".")
+#       headerCount = 1
+#       while headerCount < fileCount:
+#         outF.write(headerI + "-" + str(headerCount) + "|")
+#         headerCount += 1  
+#       outF.write(headerI + "-" + str(headerCount) + "\t")
+#       
+#     headerCount = 1
+#     while headerCount < fileCount:
+#       outF.write(headList[-1] + "-" + str(headerCount) + "|")
+#       headerCount += 1
+#     
+#     outF.write(headList[-1] + "-" + str(headerCount) + "\n")
+# 
+#   elif fileCount == 1:
+#     for headerItem in headList[:-1]:
+#       headerI = headerItem.replace(",",".")    
+#       outF.write(headerI + "\t")
+#     outF.write(headList[-1].replace(",",".") + "\n")
+#   
+#   else:
+#     print "number of input files should be at least one. Got less somehow"
+#     raise ValueError
+#     
+#   
+#   for outDK, outDV in finDict.items(): # write out assembled results to a file
+#     outN += 1
+#     if len(outDK) > 30: print "this line should not be displayed"
+#     # print outDV[1]
+#     # if outN == 100: break
+#     nameCount = 0
+#     for outI in outDV:
+#       # if nameCount == 0: print outI
+#       for outPiece in outI[:-1]:
+#         outU = outPiece.replace(",",".")
+#         if outU == "": outF.write("_|")
+#         else: outF.write(str(outU) + "|")
+#       if outI[-1] == "": # handle missing entries
+#         if nameCount == 6: outF.write(outDV[0][0] + "\t") # replace missing gene names with their uniprot ID
+#         else: outF.write("_\t")
+#       else: outF.write(str(outI[-1]).replace(",",".") + "\t")
+#       nameCount += 1
+#     outF.write("\n")
+#   
+# 
+#   print "unique proteins: ", outN
+#   print "lines parsed: ", cN
+#   # print headerLine
+#   inpF.close()
+#   outF.close()
+  
+
+    
+def file_picker(cfgS):
+  """open files for analysis from proteingroups_analyzer_params.cfg in the same directory"""
+  
+  
+  print "this is file_picker"
+  
+  import os.path, sys
+  
+  fileL = []
+  with open(cfgS,"r") as cfgFile:
+    fileList = False
+    fileListComplete = False
+    for fileLine in cfgFile: # extract file names from cfg file here
+      lineS = fileLine.rstrip("\r\n")
+      if lineS == "<Files>":
+        fileList = True
+        continue
+      if lineS == "": continue
+      if lineS == "</Files>": 
+        fileListComplete = True
+        break
+      if fileList:
+        if not os.path.isfile(lineS):
+          print "file %s not found. Please check proteingroups_analyzer_params.cfg and try again." % (lineS,)
+          sys.exit(0)
+        fileL.append(lineS)
+    if not fileListComplete or not fileList:
+      print "something is wrong in the cfg file. Could not find file block. Please check if <File> and </File> tags are present"
+      sys.exit(0)
+  
+  
+  
+  return fileL
+
+def empty_line_remover(markerS):
+  """helper function to remove empty lines from cfg file. Needs markerS as argument, like "<Ungrouped>" """
+  
+  import sys
+  
+  extraLinesFlag = False
+  with open("proteingroups_analyzer_params.cfg","r") as outF:
+    contentsL = outF.readlines()
+    ungroupedStart = contentsL.index(markerS + "\n")
+    ungroupedEnd = contentsL.index("</" + markerS[1:] + "\n")
+    if not ungroupedStart + 1 == ungroupedEnd:
+      extraLinesFlag = True
+      extraLines = contentsL[ungroupedStart + 1:ungroupedEnd]
+      for extraLine in extraLines:
+        if not extraLine.rstrip("\r\n") == "":
+          print "there are some %s samples in the config file already. Please clear them before starting again" % (markerS[1:-1].lower())
+          sys.exit(0)
+  
+  if extraLinesFlag:
+    with open("proteingroups_analyzer_params.cfg","w") as outF:
+      firstHalf = contentsL[:ungroupedStart + 1]
+      lastHalf = contentsL[ungroupedEnd:]
+      outF.writelines(firstHalf)
+      outF.writelines(lastHalf)
+    
 def column_finder(filePath):
   """identify columns for analysis in all other functions"""
+  
+  import os.path
+  import sys
 
   print "\nchecking ",filePath, " ...\n"
     
@@ -64,20 +557,31 @@ def column_finder(filePath):
   headerL = headerI.split("\t")
   # print headerL
   
-  global sampleL
+
   sampleL = []
   for headI in headerL:
     if headI[:9] == "Peptides ":
       # print headI[9:]
       sampleL.append(headI[9:])
   print "samples found:"
+  sampleCount = 1
   for sampleS in sampleL:
-    print sampleS
-    
-      
-
-
-
+    print "%d) %s-%d" % (sampleCount,sampleS,fileCount,)
+    sampleCount += 1
+  currF.close()
+  
+  with open("proteingroups_analyzer_params.cfg","r") as outF:
+    contentsL = outF.readlines()
+    global outputFolder
+    outputFolder = contentsL[contentsL.index("<Outputfolder>\n") + 1].rstrip("\r\n")
+    if not os.path.isdir(outputFolder):
+      print outputFolder, " was not found or is not a folder"
+      sys.exit(0)
+    for sampleI in sampleL:
+      unGroupedN = contentsL.index("</Ungrouped>\n")
+      contentsL.insert(unGroupedN, "%s-%d\n" % (sampleI,fileCount,))
+  with open("proteingroups_analyzer_params.cfg","w") as outF:
+    outF.writelines(contentsL)
 
 def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
@@ -228,8 +732,7 @@ def volcano_plotter():
           print curLine
           raise
         logFoldChange = log(SAvg/FAvg,2) # so positive numbers are more abundant in the wt cells, negatives number in the KO, at least for the 24H bobdata file
-        outF.write(curLine[2] + " " + str(logFoldChange) + " " + str(curLine[10]) + "\n") # write out results to file
-
+        outF.write(curLine[2] + " " + str(logFoldChange) + " " + str(curLine[10]) + "\n") # write out results 
 
 def set_fdr(fdrN = 0.05):
   """using the specified fdr number find all the p values (and corresponding genes in Bob's dataset)
@@ -279,9 +782,6 @@ def set_fdr(fdrN = 0.05):
       print "p value did not pass threshold. No other significant proteins in dataset."
       break
 
-
-    
-
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
   from tools import prot_id_converter
@@ -306,11 +806,6 @@ def interactor_finder():
         print targetD[queryI]
         break
         
-    
-        
-  
-
-
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
   from tools import file_importer, file_outporter
@@ -617,13 +1112,10 @@ def spectrum_parser():
     else: outF.write(inpSP[-1] + "\n")
     
     
-    
     rowCount += 1
 
-
-
 def entry_parser():
-  """remove duplicate protein name and total peptide count cell entries from bob's dataset
+  """remove duplicate protein name and total peptide count cell entries from a proteinGroups.txt dataset
   
   columns:
   1) Protein IDs 
@@ -966,33 +1458,6 @@ def entry_parser():
   # print headerLine
   inpF.close()
   outF.close()
-  
-  
-def file_parser():
-  """from bob"s proteinGroups.txt take: Majority protein IDs Peptide counts (razor+unique) ['LFQ intensity KO1', 'LFQ intensity KO2', 'LFQ intensity KO3', 'LFQ intensity WT1', 'LFQ intensity WT2', 'LFQ intensity WT3']
-  and write them to a new file. do not select contaminants or reverse peptides"""
-
-  from tools import file_importer, file_outporter
-  print "this is file parser"
-  inpF = file_importer("bob/24h_proteingroups.csv")
-  outF = file_outporter("bob/processed/24h_bobdata.csv")
-  for inpLine in inpF:
-    inpP = inpLine.split("\r")
-    cN = 0
-    print len(inpP)
-    for inpI in inpP:
-      inpItems = inpI.split("\t") 
-      if inpItems[100] == "+" or inpItems[101] == "+": continue # get rid of contaminants and reverse proteins
-      outF.write(str(cN) + "," + inpItems[1] + "," + inpItems[6] + "," + inpItems[3] + "," + inpItems[86] + "," + inpItems[87] + "," + inpItems[88] + "," + inpItems[89] + "," + inpItems[90] + "," + inpItems[91] + "\n")
-      # print inpItems [1],"+++", inpItems [3],"+++", inpItems [6],"+++", inpItems[86:92]
-      cN += 1
-      # if cN == 40: break
-
-    break
-
-  inpF.close()
-  outF.close()
-  print cN
   
 def crapome_parser():
   """take crapome 1.1 tab delimited file as input and add it to the output of the lfq_parser method in proteingroups_parser.py.
