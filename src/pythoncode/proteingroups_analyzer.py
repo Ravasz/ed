@@ -194,267 +194,204 @@ def file_combiner():
     outF.write("LFQ intensity " + j + ",")
     
   outF.write("Fold change (Group1/Group2),Pvalue(Group1/Group2)\n")
+  
+  # header written
     
+  
+  
+  dataCounter = 0
+  fileCount = 0
+  finDict = defaultdict(list)
+ 
+  for dataFile in inpFileList:
+    dataCounter += 1
+    currGroupL = []   # select samples to analyze in each file
+    for groupI in groupList:
+      groupN = int(groupI.split("-")[-1])
+      if groupN == dataCounter:
+        currGroupL.append(groupI[:groupI.rindex("-")])
+    # print currGroupL
+    
+    colL = [] # list of columns that are to be collected
+    colL += ["Majority protein IDs","Protein names","Gene names"]
+    for sI in currGroupL:
+      colL.append("Peptides "+ sI)
+    for sI in currGroupL:
+      colL.append("Razor + unique peptides "+ sI)
+    for sI in currGroupL:
+      colL.append("LFQ intensity "+ sI)
 
-  
     
-  
-#   dataCounter = 0
-# 
-#   for dataFile in inpFileList:
-#     dataCounter += 1
-#     currGroupL = []
-#     for groupI in groupList:
-#       groupN = int(groupI.split("-")[-1])
-#       if groupN == dataCounter:
-#         currGroupL.append(groupI[:groupI.rindex("-")])
-#     
-#     
-#     with open(dataFile,"r") as inpF:
-# 
-#       finDict = defaultdict(list)
-#       cN = 0
-#       outDict = {}
-#       headerFlag = True
-#        
-#       for inpLine in inpF:
-#         cN += 1
-#         if headerFlag:
-#           headerFlag = False
-#           inpItem = inpLine.rstrip("\r\n").split("\t")
-#           for inpI in inpItem:
-#             if inpI 
-# 
-#           continue
-#         inpLine = inpLine.rstrip("\r\n")
-#     inpItem = inpLine.split("\t")
-#     geneL = inpItem[0].split(";")
-#     lenS = len(geneL[0])
-#     curGene = geneL[0]
-#     for geneI in geneL: # find gene name with the shortest length
-#       if len(geneI) < lenS:
-#         lenS = len(geneI)
-#         curGene = geneI
-#     if "__" in curGene: continue # get rid of contaminant lines
-#     """
-#     try: # get rid of wonky lines introduced by excel
-#       int(curGene)
-#       continue
-#     except ValueError: 
-#       pass
-#     """
-# 
-#     if curGene[-2] == "-":
-#       curGene = curGene[:-2]
-#     if curGene[-3] == "-":
-#       curGene = curGene[:-3]
-#     
-#     # remove ambiguities based on gene name from the entire entry:
-#     
-#     corrPos = geneL.index(curGene)
-#     corrLine = []
-#     targetCount = 46 # after the 45th item row in the list, peptide IDs and modification start to appear which are allowed to have multiple entries and do not need to be disambiguated
-#     currCount = 1
-#     pepFlag = True
-#     for inpE in inpItem:
-#       currCount += 1
-#       if currCount == targetCount:
-#         pepFlag = False
-#         # print inpE
-#       if ";" in inpE and pepFlag:
-#         try:
-#           corrLine.append(inpE.split(";")[corrPos])
-#         except IndexError:
-#           corrLine.append(inpE.split(";")[0])
-#       else:
-#         corrLine.append(inpE.rstrip("\n"))
-# 
-#       
-#     if inpItem[6] == "":
-#       # print "no protein name found. adding the uniprot ID."
-#       inpItem[6] = curGene
-#           
-#     """
-#     try:
-#       for inpN in inpItem[4:10]:
-#         inpItem[inpItem.index(inpN)] = int(inpN)
-#       countFlag = True
-#     except ValueError:
-#       print inpItem[4:10]
-#       countFlag = False
-#     if countFlag:
-#       if sum(inpItem[4:10]) == 0: continue # there are some unexpressed proteins in there
-#       
-#     """
-#     # print len(corrLine)
-#     if curGene in outDict: # handle duplicate protein entries and merge them together
-#       # print "%s is duplicate" % curGene
-#       if curGene == "Protein IDs": 
-#         """
-#         quickCount2 = 0
-#         for quickDictI in outDict[curGene]:
-#           print str(quickCount2) + " " + quickDictI
-#           quickCount2 += 1
-#         quickList = inpItem
-#         quickCount3 = 0
-#         for quickImp in quickList:
-#           print str(quickCount3) + " " + quickImp
-#           quickCount3 += 1         
-#         # print inpItem
-#         # print outDict[curGene]
-#         """
-#         continue
-#       combList = []
-#       
-#       """
-#       addL = []
-#       for i in outDict[curGene][3:]:
-#         addL.append(i)
-#       addL2 = []
-#       for j in corrLine[3:]:
-#         addL2.append(i)
-#       outL[3:] = map(add, addL, addL2) # admittedly this looks terrible
-#       """
-#       
-#       indexN = 0
-#       for cItem in corrLine:
-#         # print indexN
-#         # print "---"
-#         # print len(corrLine)
-#         if indexN < 18 or 30 <= indexN <= 43:
-#           try:
-#             currC = int(cItem)
-#             currC = currC + int(outDict[curGene][indexN]) # numbers like peptide counts or LFQ values are added up during merge
-#           except ValueError:
-#             currC = cItem
-#         
-#         elif 18 <= indexN <= 25 or 28 <= indexN <= 29: # sequence coverage and scores
-#           currC = max([float(cItem),float(outDict[curGene][indexN])])
-#         
-#         elif 26 <= indexN <= 27 or indexN == 44:
-#           """
-#           quickCount = 0
-#           for corrItem in corrLine:
-#             print str(quickCount) + " " + corrItem
-#             quickCount += 1
-#             
-#           import time
-#           
-#           print relPath
-#           print corrLine
-#           print outDict[curGene]
-#           print "++++++++++++++++++++++++"
-#           print indexN
-#           time.sleep(0.5)"""
-#           currC = cItem
-# 
-#           
-#         else:
-#           corrL = cItem.split(";")
-#           # print indexN
-#           # print corrLine
-#           # print outDict[curGene][indexN]
-#           dictL = outDict[curGene][indexN].split(";")
-#           mergeL = copy(dictL)
-#           for corrI in corrL:
-#             if corrI not in dictL:
-#               mergeL.append(corrI)
-#           
-#           currC = ";".join(mergeL)
-# 
-#         combList.append(currC)
-# 
-#         
-#         indexN +=1
-#       
-#       
-#       combList[-1] = "merged"    
-#       outDict[curGene] = combList 
-#       # print "merged:"
-#       # print combList
-#     else:
-#       corrLine.append("unique")
-#       outDict[curGene] = corrLine
-# 
-#     
-#   print fileCount
-#   
-# 
-#   #   if not newFlag: print fileCount, testKey, finDict[testKey]     
-#   # if newFlag:
-#   #   newFlag = False
-#   
-#   for outKey,outValue in outDict.items(): 
-#     if outKey in finDict: # add modified dicts together into single, unified dict
-#       # print fileCount, finDict[outKey]
-#       # print outValue
-#       outIndex = 0
-#       for outItem in outValue:
-#         finDict[outKey][outIndex].append(outItem)
-#         outIndex += 1
-#       # print finDict[outKey]
-# 
-#     else:  # or just add new entries
-#       if fileCount == 1:
-#         for outItem in outValue:
-#           finDict[outKey].append([outItem])
-#       
-#       else: # fill up entries that were not present in the previous cycle
-#         loopCount = 0
-#         while loopCount < fileCount - 1:
-#           for i in range(len(outValue)):
-#             if len(finDict[outKey]) == i:
-#               finDict[outKey].append([])
-#             else:
-#               finDict[outKey][i].append("")
-#           loopCount += 1
+     
+    with open(dataFile,"r") as inpF:
+   
+      cN = 0
+      outDict = {}
+      headerFlag = True
+      neededColIndexes = []
+      fileCount += 1
+          
+      for inpLine in inpF:
+        cN += 1
+        if headerFlag:
+          headerFlag = False
+          inpItem = inpLine.rstrip("\r\n").split("\t")
+          for inpI in inpItem: # collect the position of columns that are to be copied into the results file
+            if inpI in colL:
+              neededColIndexes.append(inpItem.index(inpI))
+          # print neededColIndexes
+          continue
+        
+        inpLine = inpLine.rstrip("\r\n")
+        inpItem = inpLine.split("\t")
+        geneL = inpItem[neededColIndexes[0]].split(";")
+        lenS = len(geneL[0])
+        curGene = geneL[0]
+        for geneI in geneL: # find gene name with the shortest length
+          if len(geneI) < lenS:
+            lenS = len(geneI)
+            curGene = geneI
+        if "__" in curGene: continue # get rid of contaminant lines
+        corrGeneN = geneL.index(curGene)
+
+ 
+        if curGene[-2] == "-":
+          curGene = curGene[:-2]
+        elif curGene[-3] == "-":
+          curGene = curGene[:-3]
+        
+        workingL = []  
+        for neededN in neededColIndexes:
+          workingL.append(inpItem[neededN])
+        
+        # print workingL
+        
+        uniqueL = []
+        for workingI in workingL[:3]: # remove ambiguities 
+          workingIL = workingI.split(";")
+          try:
+            uniqueL.append(workingIL[corrGeneN])
+          except IndexError:
+            uniqueL.append(workingIL[0])
+        uniqueL.extend(workingL[3:])
+
+        if uniqueL[2] == "":
+          # print "no protein name found. adding the uniprot ID."
+          uniqueL[2] = curGene
+        
+        # print uniqueL
+
+        if curGene in outDict: # handle duplicate protein entries and merge them together
+          print "%s is duplicate" % curGene
+          mergedL = []
+          for mI in outDict[curGene][:3]:
+            mergedL.append(mI)
+          
+          posCount = 3  
+          finN = 3+(len(currGroupL)*2)
+          for mI in outDict[curGene][3:finN +1]:
+            mergedL[posCount] = max(int(outDict[curGene][posCount]),int(uniqueL[posCount])) # take higher number of peptide and unique peptide counts
+            posCount += 1
+          for mI in outDict[curGene][finN +1:]:
+            mergedL[posCount] = sum(int(outDict[curGene][posCount]),int(uniqueL[posCount])) # add up LFQ scores
+            posCount += 1
+          outDict[curGene] = mergedL # add in unified scores
+          
+        else: outDict[curGene] = uniqueL
+      
+      print outDict
+      print fileCount
+      
+      # so it collects the relevant data from each of the files. As a next step
+      # these dicts have to be merged to a single dict and then written to a file
+      
+#       for outKey,outValue in outDict.items(): 
+#         if outKey in finDict:
+#           if len(finDict[outKey]) == fileCount -1: # if protein was present in previous file
+            
+            
+           
+      
+   
+
+#     for outKey,outValue in outDict.items(): 
+#       if outKey in finDict: # add modified dicts together into single, unified dict
+#         # print fileCount, finDict[outKey]
+#         # print outValue
 #         outIndex = 0
 #         for outItem in outValue:
-#           # print finDict[outKey]
-#           finDict[outKey][outIndex].append(outItem)          
+#           finDict[outKey][outIndex].append(outItem)
 #           outIndex += 1
-# 
-#   for testKey in finDict: # fill up entries in result dict which were not present in previous file
-#     if len(finDict[testKey][0]) < fileCount:
-#       for i in range(len(finDict[testKey])):
-#         finDict[testKey][i].append("")
-# 
-#   if len(inpathL) > 1: fileCount += 1 # this is needed if multiple files are parsed
-#   for finK, finV in finDict.items():
-#     for finI in finV[-1]:
-#       if finI <> "unique" and finI <> "":
-#         print finK, finV
-# 
-#     
-#   
-#   outN = 0  
-#   # prepare header for file:
-#   headList = headerLine.strip("\n\r").split("\t")
-#   if fileCount > 1:
-#     for headerItem in headList[:-1]:
-#       headerI = headerItem.replace(",",".")
-#       headerCount = 1
-#       while headerCount < fileCount:
-#         outF.write(headerI + "-" + str(headerCount) + "|")
-#         headerCount += 1  
-#       outF.write(headerI + "-" + str(headerCount) + "\t")
-#       
-#     headerCount = 1
-#     while headerCount < fileCount:
-#       outF.write(headList[-1] + "-" + str(headerCount) + "|")
-#       headerCount += 1
-#     
-#     outF.write(headList[-1] + "-" + str(headerCount) + "\n")
-# 
-#   elif fileCount == 1:
-#     for headerItem in headList[:-1]:
-#       headerI = headerItem.replace(",",".")    
-#       outF.write(headerI + "\t")
-#     outF.write(headList[-1].replace(",",".") + "\n")
-#   
-#   else:
-#     print "number of input files should be at least one. Got less somehow"
-#     raise ValueError
+#         # print finDict[outKey]
+#    
+#       else:  # or just add new entries
+#         if fileCount == 1:
+#           for outItem in outValue:
+#             finDict[outKey].append([outItem])
+#          
+#         else: # fill up entries that were not present in the previous cycle
+#           loopCount = 0
+#           while loopCount < fileCount - 1:
+#             for i in range(len(outValue)):
+#               if len(finDict[outKey]) == i:
+#                 finDict[outKey].append([])
+#               else:
+#                 # print finDict[outKey]
+#                 finDict[outKey][i].append("")
+#             loopCount += 1
+#           outIndex = 0
+#           for outItem in outValue:
+#             # print finDict[outKey]
+#             finDict[outKey][outIndex].append(outItem)          
+#             outIndex += 1
+#             
+# #     for fKey, fValue in finDict.items():
+# #       pass
+# #       print fValue
+#    
+#     for testKey in finDict: # fill up entries in result dict which were not present in previous file
+#       if len(finDict[testKey][0]) < fileCount - 1:
+#         for i in range(len(finDict[testKey])):
+#           if i < 3:
+#             finDict[testKey][i].append("")
+#           else:
+#             finDict[testKey][i].append("0")
+#           
+# #     for fKey, fValue in finDict.items():
+# #       pass
+# #       print fValue
+
+     
+         
+       
+#       outN = 0  
+#       # prepare header for file:
+#       headList = headerLine.strip("\n\r").split("\t")
+#       if fileCount > 1:
+#         for headerItem in headList[:-1]:
+#           headerI = headerItem.replace(",",".")
+#           headerCount = 1
+#           while headerCount < fileCount:
+#             outF.write(headerI + "-" + str(headerCount) + "|")
+#             headerCount += 1  
+#           outF.write(headerI + "-" + str(headerCount) + "\t")
+#            
+#         headerCount = 1
+#         while headerCount < fileCount:
+#           outF.write(headList[-1] + "-" + str(headerCount) + "|")
+#           headerCount += 1
+#          
+#         outF.write(headList[-1] + "-" + str(headerCount) + "\n")
+#      
+#       elif fileCount == 1:
+#         for headerItem in headList[:-1]:
+#           headerI = headerItem.replace(",",".")    
+#           outF.write(headerI + "\t")
+#         outF.write(headList[-1].replace(",",".") + "\n")
+#        
+#       else:
+#         print "number of input files should be at least one. Got less somehow"
+#         raise ValueError
 #     
 #   
 #   for outDK, outDV in finDict.items(): # write out assembled results to a file
