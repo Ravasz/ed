@@ -53,7 +53,7 @@ def biogrid_parser():
   """
   
   import os.path
-  from .tools import prot_id_converter
+  from tools import prot_id_converter
   
   print("processing biogrid file")
   
@@ -90,7 +90,7 @@ def intact_parser(outDataType = "genesymbol"):
   todo:
   - retrieve both gene name and full protein name
   """
-  from .tools import prot_id_converter
+  from tools import prot_id_converter
   import os.path
   
   print("processing intact file")
@@ -176,7 +176,7 @@ def intact_parser(outDataType = "genesymbol"):
 def name_collector():
   """look up protein interactors, download their fasta sequences to extract their names. 
   Print the names to STDout"""
-  from .tools import prot_entrez_fetch
+  from tools import prot_entrez_fetch
   
   resD = {}
   intactIdList = intact_parser("refseqproteingi") 
@@ -236,7 +236,7 @@ def name_collector():
 def sh3_counter():
   """look up a list of uniprot IDs, download their full genbank entries from the Entrez database 
   and count the number of SH3 domains the interactors have. Print the results to STDout"""
-  from .tools import prot_entrez_fetch, prot_id_converter
+  from tools import prot_entrez_fetch, prot_id_converter
   # from bobdata_parser import protein_name_collector
   fullPreyL = protname_compare()
   # fullPreyL = intact_parser() # to use for Ptpn22 interactome

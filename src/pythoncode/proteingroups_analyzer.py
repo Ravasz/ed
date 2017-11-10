@@ -523,7 +523,7 @@ def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
   like remove leftover spaces and commas in it then add fold change and FDR score"""
   from math import log
-  from .tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   
   fdrN = 0.05
   def p_value_key(protItem):
@@ -590,7 +590,7 @@ def ROutputFormatter():
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from .tools import prot_id_converter
+  from tools import prot_id_converter
   
   protList = []
   headerFlag = True
@@ -720,7 +720,7 @@ def set_fdr(fdrN = 0.05):
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from .tools import prot_id_converter
+  from tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -744,7 +744,7 @@ def interactor_finder():
         
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from .tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from math import log
   
   print("this is stat parser")
@@ -915,7 +915,7 @@ def lfq_parser_2x():
   
   Only include hits which appear at least in two OST samples
   """
-  from .tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   # from random import random
   from math import log10
   
@@ -994,7 +994,7 @@ def spectrum_parser():
   
   This function is a modification of the lfq_parser()
   """
-  from .tools import file_importer, file_outporter
+  from tools import file_importer, file_outporter
   from random import random
   # from math import log10
   

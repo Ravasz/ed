@@ -17,7 +17,7 @@ After running the program, it seems that 380624 matching, and 1058049 unmatching
 '''  
 
 def main():
-  from .tools import file_importer, uniprot_dicter, iso_e
+  from tools import file_importer, uniprot_dicter, iso_e
   from collections import defaultdict
   print("this is evidence parser")
   inpEvF = file_importer("bob/evidence.txt")

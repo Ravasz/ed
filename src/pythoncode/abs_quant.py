@@ -105,7 +105,7 @@ def file_parser(fileName, outFolder, expTag):
 def entry_parser(fileName, outFolder, expTag):
   """remove duplicate protein name and total peptide count cell entries"""
   from operator import add
-  from .tools import go_term_advanced_lookup
+  from tools import go_term_advanced_lookup
   
   goC = 0
   errC = 0
