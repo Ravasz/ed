@@ -17,7 +17,7 @@ find significantly enriched proteins in maxquant output data. This script is a m
 def main():
   print "call a function here to start"
   # ROutputFormatter()
-  lfq_parser()
+  crapome_parser()
 
 def pipeline_runner():
   """do the analysis of proteomics datasets by calling the appropriate functions one after the other.
@@ -951,7 +951,8 @@ def crapome_parser():
   # contTreshold = 30 # set this to the desired contamination score
   resD = {}
   
-  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
+  # crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
+  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "Crapome-all-proteins-ptpn22-ip-ctl.txt"),"rU")
   
   headerFlag = True
   
@@ -974,8 +975,12 @@ def crapome_parser():
   print "lines parsed: " + str(fileLength)
   print "Number of results: " + str(len(resD))
       
-  inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
-  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
+  #   inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
+  #   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
+  inpFile = open(os.path.join("/home/mate/workspace/katamari/src/ed/bob/processed", "OST-24-05-2017_combined_ttest_ed_2.csv"),"rU")
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "processed", "OST-24-05-2017_combined_ttest_ed_2_cr.csv"),"w")
+
+  
   
   headerFlag = True
   for inpLine in inpFile: # parse the input file for crapome and add crapome results to it

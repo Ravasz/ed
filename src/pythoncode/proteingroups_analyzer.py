@@ -44,8 +44,9 @@ cfg file layout:
 
 def main():
   print "call a function here to start"
-  # file_analyzer()
+  #file_analyzer()
   file_combiner()
+  
   
 
 def file_analyzer():
@@ -299,7 +300,7 @@ def file_combiner():
           
         else: outDict[curGene] = uniqueL
       
-      print outDict
+      print outDict["P20934"]
       print fileCount
       
       # so it collects the relevant data from each of the files. As a next step
@@ -309,10 +310,6 @@ def file_combiner():
 #         if outKey in finDict:
 #           if len(finDict[outKey]) == fileCount -1: # if protein was present in previous file
             
-            
-           
-      
-   
 
 #     for outKey,outValue in outDict.items(): 
 #       if outKey in finDict: # add modified dicts together into single, unified dict
@@ -1404,7 +1401,9 @@ def crapome_parser():
   # contTreshold = 30 # set this to the desired contamination score
   resD = {}
   
-  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
+  # crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
+  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "Crapome-OT1-upregulated.txt"),"rU")
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "Crapome-OT1-upregulated_parsed.txt"),"w")
   
   headerFlag = True
   
@@ -1412,12 +1411,15 @@ def crapome_parser():
   for inpLine in crapFile: # parse crapome output file
     if headerFlag:
       headerFlag = False
+      outF.write("protName\tscore\n")
       continue
     fileLength += 1
     lineList = inpLine.split("\t")
     if lineList[2] == "": continue
     elif len(lineList) > 2: contScore = int(lineList[2].split("/")[0])
     else: contScore = 0
+    
+    outF.write(lineList[1]+"\t"+ str(contScore) + "\n")
     
     # if contScore < contTreshold:
     resD[lineList[0]] = contScore
@@ -1426,24 +1428,25 @@ def crapome_parser():
   
   print "lines parsed: " + str(fileLength)
   print "Number of results: " + str(len(resD))
-      
-  inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
-  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
   
-  headerFlag = True
-  for inpLine in inpFile: # parse the input file for crapome and add crapome results to it
-    inpList = inpLine.rstrip("\n").split(",")
-    for inpI in inpList:
-      outF.write(inpI + ",")
-    
-    if headerFlag: 
-      outF.write("Crapome score")
-      headerFlag = False
-    elif inpList[2].upper() in resD: outF.write(str(resD[inpList[2].upper()]))
-    else: outF.write("0")
-    
-    outF.write("\n")
-  print "results written to file"
+      
+#   inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
+#   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
+#   
+#   headerFlag = True
+#   for inpLine in inpFile: # parse the input file for crapome and add crapome results to it
+#     inpList = inpLine.rstrip("\n").split(",")
+#     for inpI in inpList:
+#       outF.write(inpI + ",")
+#     
+#     if headerFlag: 
+#       outF.write("Crapome score")
+#       headerFlag = False
+#     elif inpList[2].upper() in resD: outF.write(str(resD[inpList[2].upper()]))
+#     else: outF.write("0")
+#     
+#     outF.write("\n")
+#   print "results written to file"
 
   
 if __name__ == "__main__":
