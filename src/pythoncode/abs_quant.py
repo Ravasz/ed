@@ -63,7 +63,7 @@ def file_parser(fileName, outFolder, expTag):
          
   Do not select contaminants or reverse peptides""" 
 
-  print "this is file parser in abs_quant"
+  print("this is file parser in abs_quant")
   with open(fileName,"r") as inpF:
     cN = -1
     outF = open(outFolder + expTag + "1.txt","w")
@@ -87,8 +87,8 @@ def file_parser(fileName, outFolder, expTag):
       """
       for inpI in inpItems:
         if "," in inpI:
-          print inpItems
-          print "there can be no commas in the input file. Raising value error."
+          print(inpItems)
+          print("there can be no commas in the input file. Raising value error.")
           raise ValueError
       
       outF.write(str(cN) + "," + inpItems[1] + "," + inpItems[5] + "," + inpItems[6] + "," +
@@ -100,17 +100,17 @@ def file_parser(fileName, outFolder, expTag):
                   inpItems[7] + "\n")
   
     outF.close()
-  print "\n", cN, "lines parsed successfully"
+  print("\n", cN, "lines parsed successfully")
   
 def entry_parser(fileName, outFolder, expTag):
   """remove duplicate protein name and total peptide count cell entries"""
   from operator import add
-  from tools import go_term_advanced_lookup
+  from .tools import go_term_advanced_lookup
   
   goC = 0
   errC = 0
   
-  print "this is entry parser in abs_quant"
+  print("this is entry parser in abs_quant")
   
   with open(fileName,"r") as inpF:
     outF = open(outFolder + expTag + "2.txt","w")
@@ -123,8 +123,8 @@ def entry_parser(fileName, outFolder, expTag):
         outF.write(inpLine.rstrip("\n"))
         outF.write(",protein count KO_1,protein count KO_2,protein count KO_3,protein count WT_1,protein count WT_2,"+
         "protein count WT_3,mean protein count KO,mean protein count WT\n")
-        print "header written"
-        print inpLine
+        print("header written")
+        print(inpLine)
         continue # skip header
       inpLine = inpLine.rstrip()
       inpItem = inpLine.split(",")
@@ -171,7 +171,7 @@ def entry_parser(fileName, outFolder, expTag):
         mergeL.append(outL[2] + ";" + outDict[curGene][2])
         mergeL.append(outL[3])
         mergeL.extend([max(outL[4],outDict[curGene][4]), max(outL[5],outDict[curGene][5]), max(outL[6],outDict[curGene][6])]) # add the higher of the molecular weight and the total peptide count, and unique peptide count
-        mergeL.extend(map(add, outL[7:], outDict[curGene][7:])) # add intensities
+        mergeL.extend(list(map(add, outL[7:], outDict[curGene][7:]))) # add intensities
         outL = mergeL
   
       outDict[curGene] = outL # assemble all the stuff in this dict
@@ -179,8 +179,8 @@ def entry_parser(fileName, outFolder, expTag):
     finD = absolute_quant(outDict)
     
     outN = 0  
-    print "looking up GO terms. This might take several minutes"
-    for outDV in sorted(finD.items(), key=lambda x:x[1][0]): # sort the dict based on the ID they have
+    print("looking up GO terms. This might take several minutes")
+    for outDV in sorted(list(finD.items()), key=lambda x:x[1][0]): # sort the dict based on the ID they have
       outN += 1
       # print outDV[1]
       
@@ -189,21 +189,21 @@ def entry_parser(fileName, outFolder, expTag):
         go_term_advanced_lookup(outDV[1][1])
         goC += 1
         if goC%100 == 0:
-          print ".",
+          print(".", end=" ")
         # print goC
       except:
         errC += 1
-        print outDV[1][1], " not found"
+        print(outDV[1][1], " not found")
       
       # if outN == 100: break
       for outI in outDV[1][:-1]:
         outF.write(str(outI) + ",")
       outF.write(str(outDV[1][-1]) + "\n")
   
-    print "\nunique proteins: ", outN
-    print "lines parsed: ", cN
-    print "GO terms found:", goC
-    print "GO_terms not found: ", errC
+    print("\nunique proteins: ", outN)
+    print("lines parsed: ", cN)
+    print("GO terms found:", goC)
+    print("GO_terms not found: ", errC)
     outF.close()
 
 def absolute_quant(completeDict):
@@ -231,7 +231,7 @@ def absolute_quant(completeDict):
                 "E0CZ27"]
   
   histCount = 0
-  for keyS, itemL in completeDict.items(): # calculate the histone intensities in each lane first
+  for keyS, itemL in list(completeDict.items()): # calculate the histone intensities in each lane first
     if keyS in histoneIDs:
       histCount += 1
       # print itemL
@@ -256,7 +256,7 @@ def absolute_quant(completeDict):
   
   
   resD = {} # this is the output will all data plus the absolute quantifications
-  for keyS, itemL in completeDict.items(): # calculate protein abundances using the histone counts made above. write it all out to a new dict
+  for keyS, itemL in list(completeDict.items()): # calculate protein abundances using the histone counts made above. write it all out to a new dict
     sampleCount = 0
     resD[keyS] = itemL
     for intI in itemL[7:13]:
@@ -267,7 +267,7 @@ def absolute_quant(completeDict):
     resD[keyS].append(sum(resD[keyS][-4:-1])/3)
 
   
-  print "protein numbers calculated"
+  print("protein numbers calculated")
   return resD
     
     

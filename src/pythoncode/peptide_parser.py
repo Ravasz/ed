@@ -14,23 +14,23 @@ Then, use the phosphorylation site dataset in the datafiles folder which is the 
 def main():
   from ed.tools import html_creator, prot_id_converter, prot_entrez_fetch
   from copy import deepcopy
-  print "this is peptide parser"
+  print("this is peptide parser")
   
   queryS = "Eif5a" # this is the search term that will be worked on. It should be a protein name like "Ptpn22"
   
   
-  print "working on: " + queryS
+  print("working on: " + queryS)
   with open("../bob/peptides.txt","r") as inpF: 
     pepL, uniId = peptide_finder(targetFile=inpF, targetS = queryS) # find peptides from peptides.txt for the protein name
-  print pepL
-  print "peptides found"
+  print(pepL)
+  print("peptides found")
   targetL = [queryS]
   idList = prot_id_converter(targetL, "10090", inpDB = "genesymbol",outDB="refseqproteingi")
   seqL = prot_entrez_fetch(idList, retM="gb", retT="fasta")
   for seqItem in seqL:
     seqS = seqItem.split("\n")[1]
-    print seqS
-  print "protein sequence found"
+    print(seqS)
+  print("protein sequence found")
   annotS = deepcopy(seqS)
   pStartL = []
   pEndL = []
@@ -74,7 +74,7 @@ def main():
       if curStart <= curEnd:  # check if next tag is start or end. if start, add end. if end, do nothing
         pEndL.append(pepEnd)
      
-  print uniId
+  print(uniId)
   phL = []
   with open("../datafiles/Phosphorylation_site_dataset") as phInp: # now for the phosphosite data
     for phLine in phInp:
@@ -84,7 +84,7 @@ def main():
           phL.append(int(phList[4][1:-2]) - 1)
       except IndexError:
         continue
-  print phL
+  print(phL)
   
   fullL = pStartL + pEndL
   for phItem in phL:
@@ -103,10 +103,10 @@ def main():
       annotS = annotS[:posI+offsetN] + r"""<strong style="color: red;">""" + annotS[posI+offsetN] + r"""</strong>""" + annotS[posI+offsetN + 1 :]
       offsetN += 37
         
-  print annotS
+  print(annotS)
   html_creator(queryS + " peptides", annotS, queryS + ".html")
-  print "found peptides marked in the file: ",
-  print queryS + ".html"  
+  print("found peptides marked in the file: ", end=" ")
+  print(queryS + ".html")  
 
 
   

@@ -10,20 +10,20 @@ with open("/home/mate/workspace/katamari/src/ed/datafiles/ost-mass-spec-gene-nam
   ostL = []
   for inpLine in inpF:
     ostL.append(inpLine.rstrip())
-  print ostL
+  print(ostL)
 
 with open("/home/mate/workspace/katamari/src/ed/datafiles/ot1-mass-spec-gene-names-29062016.csv","r") as inpF:
   otL = []
   for inpLine in inpF:
     otL.append(inpLine.rstrip())
-  print otL
+  print(otL)
   for oI in otL:
-    print oI
-  print "====="
+    print(oI)
+  print("=====")
   
 for ostI in otL:
   if ostI not in ostL:
-    print ostI
+    print(ostI)
 
 
 

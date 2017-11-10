@@ -17,13 +17,13 @@ After running the program, it seems that 380624 matching, and 1058049 unmatching
 '''  
 
 def main():
-  from ed.tools import file_importer, uniprot_dicter, iso_e
+  from .tools import file_importer, uniprot_dicter, iso_e
   from collections import defaultdict
-  print "this is evidence parser"
+  print("this is evidence parser")
   inpEvF = file_importer("bob/evidence.txt")
   seqD = uniprot_dicter()
   resD = defaultdict(list)
-  for keyS, valueS in seqD.items(): # create dict with keys as all mouse genes and values as a list, with the protein sequence as first item in the list
+  for keyS, valueS in list(seqD.items()): # create dict with keys as all mouse genes and values as a list, with the protein sequence as first item in the list
     resD[keyS].append(valueS.strip())
   geneL = []
   goodC = 0
@@ -34,7 +34,7 @@ def main():
     try:
       inpFrac = int(inpList[20]) # this is the "fraction" column. it holds the isoelectric fractionation number
     except ValueError:
-      print inpList[20]
+      print(inpList[20])
       continue
     for inpI in inpL:
       if inpI[-2] == "-":
@@ -51,9 +51,9 @@ def main():
         """resD[inpI].append()
         resD[inpI].append(iso_e(resD[inpI][0])) # add isoelectric point to the genes found"""
       except IndexError:
-        print "%s has no sequence" % inpI
-  print str(len(geneL)) + " genes found in evidence.txt"
-  print str(goodC) + " matching, and " + str(badC) + " unmatching peptides found" 
+        print("%s has no sequence" % inpI)
+  print(str(len(geneL)) + " genes found in evidence.txt")
+  print(str(goodC) + " matching, and " + str(badC) + " unmatching peptides found") 
   inpEvF.close()  
 
 

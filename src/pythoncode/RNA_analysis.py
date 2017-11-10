@@ -18,7 +18,7 @@ def avg_dev(someD):
   from math import isnan
   calD = {}
   # numpy.seterr(all="ignore")
-  for keyS, valueLL in someD.items():
+  for keyS, valueLL in list(someD.items()):
     fCList = []
     for valueL in valueLL:
       fCList.append(valueL[8])
@@ -30,7 +30,7 @@ def avg_dev(someD):
       calD[keyS] = [valueL[11], len(fCList), avgN, 0]
     else:
       calD[keyS] = [valueL[11], len(fCList), avgN, stDev]
-  print "averages, standard deviations calculated"
+  print("averages, standard deviations calculated")
   return calD
 
 def log_converter(numberF):
@@ -73,7 +73,7 @@ def rna_parser():
         procList.append(curItem)
       
       try: procList.append(log_converter(float(inpList[8]))) # convert fold changes to log 2
-      except ValueError: print inpList[8]
+      except ValueError: print(inpList[8])
       
       for curItem in inpList[9:]: # logFC AveExpr t P.Value adj.P.Val B
         try:
@@ -82,9 +82,9 @@ def rna_parser():
           procList.append(curItem)
           
       #['ENSMUST00000147883', 'Ctsa', 'cathepsin A', 19025, 2, 164658372, '"04142, 04614"', '"Lysosome, Renin-angiotensin system"', 0.18, 2.1, 0.33, 0.75, 1.0, -8.1]
-      if procList[1] <> "NA" and procList[9] > 0: # filter out unexpressed genes
+      if procList[1] != "NA" and procList[9] > 0: # filter out unexpressed genes
         parsedD[procList[1]].append(procList)
-  print "file parsed successfully, %d genes found" % len(parsedD)
+  print("file parsed successfully, %d genes found" % len(parsedD))
   
   extD = avg_dev(parsedD)
   with open("../bob/processed/001_KO-WT_genelist_export_Al_RNA-seq_unique.csv","w") as outF:
@@ -116,7 +116,7 @@ def prot_importer():
         print protD[inpList[2]]"""
       protD[inpList[2]] = inpList
 
-  print "found a total of %d proteins" % (len(protD))
+  print("found a total of %d proteins" % (len(protD)))
   return protD 
 
 def fc_comparison(compareD):  
@@ -138,10 +138,10 @@ def fc_comparison(compareD):
     else:
       fCnonSigD[commonI] = compareD[commonI]
       
-  print "double significant FC: ", len(fCSigD)
-  print "RNA FC > 2", len(fCRNAD)
-  print "protein FC > 2", len(fCProtD)
-  print "FC < 2 in both datasets", len(fCnonSigD)
+  print("double significant FC: ", len(fCSigD))
+  print("RNA FC > 2", len(fCRNAD))
+  print("protein FC > 2", len(fCProtD))
+  print("FC < 2 in both datasets", len(fCnonSigD))
 
 def p_value_comparison(compareD):  
   """compare p values in the RNA and proteomics datasets.
@@ -162,10 +162,10 @@ def p_value_comparison(compareD):
     else:
       fCnonSigD[commonI] = compareD[commonI]
       
-  print "double significant p value: ", len(fCSigD)
-  print "RNA p value < 0.05", len(fCRNAD)
-  print "protein p value < 0.05", len(fCProtD)
-  print "p value > 0.05 in both datasets", len(fCnonSigD)
+  print("double significant p value: ", len(fCSigD))
+  print("RNA p value < 0.05", len(fCRNAD))
+  print("protein p value < 0.05", len(fCProtD))
+  print("p value > 0.05 in both datasets", len(fCnonSigD))
 
 def string_analyzer(targetD):
   """take stringDB output of protein interactors and map it against the RNA and protein dataset to find matches"""
@@ -183,7 +183,7 @@ def string_analyzer(targetD):
         hitCount += 1
         outF.write(str(targetD[baitI][2]) + "," + str(targetD[baitI][12]).rstrip("\n") + "," + str(targetD[baitI][15]) + "\n")
     
-  print "out of %d proteins, %d was found in the dataset" %(len(resL),hitCount)
+  print("out of %d proteins, %d was found in the dataset" %(len(resL),hitCount))
 
 
     
@@ -224,16 +224,16 @@ def main():
     if comI in shD:
       sh2CommonD[comI] = commonD[comI] + shD[comI]
   
-  print "number of genes in proteomics data in total: ", len(protDict)
-  print "number of genes found in RNA seq: ", len(rnaD)
-  print "number of genes found in both datasets: ", len(commonD)
-  print "number of genes found in proteomics dataset only: ", len(protOnlyD)
-  print "number of genes found in RNA seq only: ", len(rnaOnlyD)
-  print "-----"
-  print "number of proteins with SH2 domains", len(sh2inprotD)
-  print "number of mRNAs encoding SH2 domains", len(sh2inrnaD)
-  print "number of genes with both protein and RNA having SH2 domains", len(sh2CommonD)
-  print "-----"
+  print("number of genes in proteomics data in total: ", len(protDict))
+  print("number of genes found in RNA seq: ", len(rnaD))
+  print("number of genes found in both datasets: ", len(commonD))
+  print("number of genes found in proteomics dataset only: ", len(protOnlyD))
+  print("number of genes found in RNA seq only: ", len(rnaOnlyD))
+  print("-----")
+  print("number of proteins with SH2 domains", len(sh2inprotD))
+  print("number of mRNAs encoding SH2 domains", len(sh2inrnaD))
+  print("number of genes with both protein and RNA having SH2 domains", len(sh2CommonD))
+  print("-----")
   """
   with open("../bob/processed/24h_bobgenes_in_common.csv","w") as outF:
     outF.write("oldID,UniprotID,GeneName,uniquePeptides,LFQKO1,LFQKO2,LFQKO3,LFQWT1,LFQWT2,LFQWT3,pValue,FDR,l2FC,raw P value in RNA seq,number of unique mRNAs,Average log 2 fold change RNA seq,standard deviation of fold change in RNA seq\n")

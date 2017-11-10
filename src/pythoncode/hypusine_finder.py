@@ -27,12 +27,12 @@ def dohh_hyp_finder():
             hL.append(hypI)
         
   
-  print qL
-  print hL
+  print(qL)
+  print(hL)
   
   for hI in hL:
     if hI in qL:
-      print hI
+      print(hI)
 
 
 def hyp_comp():
@@ -54,7 +54,7 @@ def hyp_comp():
         
       for bobI in bobList:
         if bobI in jensList:
-          print bobI
+          print(bobI)
         
 
 

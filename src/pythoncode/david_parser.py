@@ -10,7 +10,7 @@ take files outputted by DAVID and do stuff with em:
 
 
 def main():
-  print "this is DAVID parser"
+  print("this is DAVID parser")
   cluster_miner()
 
 def cluster_miner():
@@ -19,7 +19,7 @@ def cluster_miner():
   
   import os.path
   
-  print "this is cluster_miner"
+  print("this is cluster_miner")
   
   inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "t2t_5979A7E9CBA41503507470597.txt"),"rU")
   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "david_clusters_t2t_5979A7E9CBA41503507470597_members.txt"),"w")
@@ -80,7 +80,7 @@ def cluster_miner():
   outF.write("\n")    
   inpF.close()
   outF.close()
-  print "cluster_miner completed"
+  print("cluster_miner completed")
           
 def chart_miner():
   """take a functional annotation chart output from DAVID and extract all terms 
@@ -88,7 +88,7 @@ def chart_miner():
   
   import os.path
   
-  print "this is chart_miner"
+  print("this is chart_miner")
   inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "chart_5979A7E9CBA41503507854395.txt"),"rU")
   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "david_chart_5979A7E9CBA41503507854395.txt"),"w")
   """
@@ -109,7 +109,7 @@ def chart_miner():
         outF.write(str(float(inpList[-3])) + "\t" + inpList[1] + "\n")
    
     
-  print "chart miner completed"
+  print("chart miner completed")
 
 if __name__ == "__main__":
   main()

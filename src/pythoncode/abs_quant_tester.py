@@ -24,8 +24,8 @@ for inpLine in inpFile:
   inpL = inpLine.split(",")
   
   if inpL[1] == "A2BH40":
-    print inpLine
+    print(inpLine)
   
   if int(inpL[5].split(";")[0]) < int(inpL[6].split(";")[0]):
-    print inpLine
+    print(inpLine)
 

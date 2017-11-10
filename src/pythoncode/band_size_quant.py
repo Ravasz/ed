@@ -91,8 +91,8 @@ for fileName in os.listdir(directoryS): # go through all files in the folder
 outDataF = open(os.path.join(directoryS , "ost-ptpn22-sizes-summary.csv"),"w")
 listCount = 0
 ostSingleList = []
-print "ost bands:"
-print ostSizeList
+print("ost bands:")
+print(ostSizeList)
 for ostSubList in ostSizeList:
   listCount += 1
   outFSegmented = open(os.path.join(directoryS , "ost-ptpn22-sizes" + str(listCount) + ".csv"),"w")
@@ -101,12 +101,12 @@ for ostSubList in ostSizeList:
     outFSegmented.write(str(ostSubItem) + "\n")
   outFSegmented.close()
   
-  print listCount
+  print(listCount)
 
-  print len(ostSubList)
-  print round(sum(ostSubList) / float(len(ostSubList)),1)
-  print round(numpy.std(ostSubList),1)
-  print "---"
+  print(len(ostSubList))
+  print(round(sum(ostSubList) / float(len(ostSubList)),1))
+  print(round(numpy.std(ostSubList),1))
+  print("---")
 
 ostSingleList.sort()
 for ostSize in ostSingleList:
@@ -114,7 +114,7 @@ for ostSize in ostSingleList:
 
 outF.close()
 
-print "Csk: bands found, average size, SD:"
-print len(cskSizeList)
-print sum(cskSizeList) / float(len(cskSizeList))
-print numpy.std(cskSizeList)
+print("Csk: bands found, average size, SD:")
+print(len(cskSizeList))
+print(sum(cskSizeList) / float(len(cskSizeList)))
+print(numpy.std(cskSizeList))

@@ -55,10 +55,10 @@ with open("/home/mate/workspace/katamari/src/ed/datafiles/ni.3314-f1.txt", "rU")
       for geneI in hukI:
         if geneI in bobD and geneI != "Gene names":
           if geneI == "Hist1h4a": 
-            print inpHukL
-            print inpHukL[8]
-            print int(bobD[geneI][-2])*0.5
-            print int(bobD[geneI][-2])*2
+            print(inpHukL)
+            print(inpHukL[8])
+            print(int(bobD[geneI][-2])*0.5)
+            print(int(bobD[geneI][-2])*2)
           matchCount += 1       
           commonD[geneI] = bobD[geneI] + inpHukL           
           if inpHukL[8] != "" and float(bobD[geneI][-1])*0.5 < float(inpHukL[8]) < float(bobD[geneI][-1])*2: 
@@ -67,14 +67,14 @@ with open("/home/mate/workspace/katamari/src/ed/datafiles/ni.3314-f1.txt", "rU")
             # print commonD[geneI]
           break
           
-    print len(bobD)
-    print countN
-    print matchCount
-    print "number of proteins within the acceptable range:", len(correctD)
+    print(len(bobD))
+    print(countN)
+    print(matchCount)
+    print("number of proteins within the acceptable range:", len(correctD))
     
     outF = open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_CTL-21-55-24-05-20163.txt","w")
     
-    for outDV in sorted(commonD.items(), key=lambda x:int(x[1][0])): # sort the dict based on the ID they have
+    for outDV in sorted(list(commonD.items()), key=lambda x:int(x[1][0])): # sort the dict based on the ID they have
       for outI in outDV[1][:-1]:
         outF.write(str(outI) + ",")
       outF.write(str(outDV[1][-1]) + "\n")

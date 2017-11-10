@@ -5,8 +5,8 @@ Created on 15 May 2015
 bunch of functions useful for writing scripts with proteins. No action script.
 '''
 def main():
-  print "you are in protein tools"
-  print "you should really call functions from outside this script though"
+  print("you are in protein tools")
+  print("you should really call functions from outside this script though")
   
   # testL = ["NP_055136"]
   
@@ -70,7 +70,7 @@ def ROutputFormatter():
   protList.sort(key = p_value_key) # sort the whole list on p value (lowest to highest) 
   i = 0.0 
   m = float(len(protList))
-  print "dataset length: ", int(m)
+  print("dataset length: ", int(m))
   with open("bob/processed/OST-24-05-2017_combined_ttest_formatted.csv","w") as outputF:
     outputF.write("#,UniprotID,geneName,OST1,OST2,OST3,WT1,WT2,WT3,pValue,FDR,log2FoldChange\n")
     for protListI in protList:
@@ -81,7 +81,7 @@ def ROutputFormatter():
         FAvg = (protListI[2] + protListI[3] + protListI[4])/3.0 # OST
         SAvg = (protListI[5] + protListI[6] + protListI[7])/3.0 # OT1
       except TypeError:
-        print curLine
+        print(curLine)
         raise
       logFoldChange = log(SAvg/FAvg,2) # so positive numbers are more abundant in the OT1 cells, negatives number in the OST cells, at least for the OST IP mass spec file
       protListI.append(logFoldChange)
@@ -93,7 +93,7 @@ def ROutputFormatter():
         else:
           outputF.write(",")
       
-  print "formatting complete"
+  print("formatting complete")
       
     
 
@@ -101,7 +101,7 @@ def protein_quantifier(protName = "Ptpn22"):
   """look up a protein by name in Bob's dataset, and return its abundance in ppm
   the ppm is calculated from the lfq values. Apparently, single lfq value, divided by its column total results in ppm.   
   """
-  print "running protein quantifier"
+  print("running protein quantifier")
   with open("bob/proteinGroups.txt", "r") as inpF:
     lfqTotal = [0.0,0.0,0.0] # this holds the total of each column
     headerFlag = True
@@ -116,22 +116,22 @@ def protein_quantifier(protName = "Ptpn22"):
         colCount = 0
         protNameList = inpL[6].split(";")
         if protName in protNameList: # find protein of interest
-          print protName, "found as:", inpL[6]
+          print(protName, "found as:", inpL[6])
         fullD[protNameList[0]] = []
         for inpI in inpL[83:86]: # do running sum
           if inpI != "NaN":
             lfqTotal[colCount] += float(inpI)
             fullD[protNameList[0]].append(float(inpI))
           colCount += 1
-    for keyS, valueL in fullD.items(): # calculate mean ppm
+    for keyS, valueL in list(fullD.items()): # calculate mean ppm
       ppmSum = 0
       ppmCount = 0
       for valueI in valueL:
         ppmSum += ((valueI/lfqTotal[ppmCount])*1000000 )
         ppmCount += 1
       fullD[keyS].append(ppmSum/3)
-    sortedFullD = sorted(fullD.items(), key=lambda (k, v): v[-1], reverse=True) # sort
-    print lfqTotal
+    sortedFullD = sorted(list(fullD.items()), key=lambda k_v: k_v[1][-1], reverse=True) # sort
+    print(lfqTotal)
     for i in range(len(sortedFullD)): # add ranks
       sortedFullD[i][1].append(i+1)
     resD = {}
@@ -139,12 +139,12 @@ def protein_quantifier(protName = "Ptpn22"):
       resD[sortedI[0]] = sortedI[1]
     
     if protName in resD:
-      print protName
-      print "average ppm in WT samples:", resD[protName][-2]
-      print "abundance rank:", resD[protName][-1]
+      print(protName)
+      print("average ppm in WT samples:", resD[protName][-2])
+      print("abundance rank:", resD[protName][-1])
       
     else: 
-      print protName, "does not match to any entry"
+      print(protName, "does not match to any entry")
 
     with open("/home/mate/workspace/katamari/src/ed/datafiles/protein_abundances-ibaq.txt","w") as outF:
       for resI in sortedFullD:
@@ -183,7 +183,7 @@ def stop_watch():
   import timeit
   start = timeit.default_timer()
   stop = timeit.default_timer()
-  print stop - start 
+  print(stop - start) 
   
 def uniprot_dicter():
   """create dict of all known uniprot mouse proteins and return dict 
@@ -218,7 +218,7 @@ def protein_groups_slicer():
           commaN += 1
         outF.write("\n")
         cN += 1
-    print str(cN) + " lines written to " + str(outF.name) 
+    print(str(cN) + " lines written to " + str(outF.name)) 
 
 
 def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", outDB = "genbankproteingi"):
@@ -236,11 +236,11 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   outDB is output database type, use "geneid" for Gene ID or "genbankproteinaccession" or "genbankproteingi" or "refseqproteingi" for those
  
   """
-  import urllib, json
+  import urllib.request, urllib.parse, urllib.error, json
   urlStr = "http://biodbnet.abcc.ncifcrf.gov/webServices/rest.php/biodbnetRestApi.json?method=db2db&format=row&input=" + inpDB + "&inputValues=" + ",".join(protList) + "&outputs=" + outDB + "&taxonId=" + orgnID  
-  print "connecting to biodbnet. This might take a while..."
-  uParsed = urllib.urlopen(urlStr)  
-  print "connection successful"
+  print("connecting to biodbnet. This might take a while...")
+  uParsed = urllib.request.urlopen(urlStr)  
+  print("connection successful")
   responseJson = uParsed.read()
   parsedJson = json.loads(responseJson)
   # print parsedJson
@@ -266,15 +266,15 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
     return gene_symbol_wrangler(parsedJson)
                          
   else: 
-    print "was expecting Genbank protein accessions, genbank protein GIs, Uniprot accessions or RefSeq protein GIs, but got something else:"
-    print parsedJson
+    print("was expecting Genbank protein accessions, genbank protein GIs, Uniprot accessions or RefSeq protein GIs, but got something else:")
+    print(parsedJson)
     raise ValueError
  
 def kegg_wrangler(inpAcc):
   """to be called by prot_id_converter
   Take in a loaded json file which has kegg gene IDs as results.
   Return a list of lists with where each sublist contains the results of a single query"""  
-  print "processing KEGG Gene IDs Accessions"
+  print("processing KEGG Gene IDs Accessions")
   resL = []
   for inpAccD in inpAcc:
     queryL = inpAccD["KEGG Gene ID"].split("//")
@@ -286,8 +286,8 @@ def kegg_wrangler(inpAcc):
       curL.append(curQuery)
       foundFlag = True
     if not foundFlag: 
-      print "GI not found in this query:"
-      print inpAccD
+      print("GI not found in this query:")
+      print(inpAccD)
     else:
       resL.append(curL)    
 
@@ -298,7 +298,7 @@ def uniprot_wrangler(inpAcc):
   Take in a loaded json file which has uniprot accessions as results.
   Return a list of lists with where each sublist contains the results of a single query"""
   
-  print "processing Uniprot Accessions"
+  print("processing Uniprot Accessions")
   resL = []
   for inpAccD in inpAcc:
     queryL = inpAccD["UniProt Accession"].split("//")
@@ -310,8 +310,8 @@ def uniprot_wrangler(inpAcc):
       curL.append(curQuery)
       foundFlag = True
     if not foundFlag: 
-      print "GI not found in this query:"
-      print inpAccD
+      print("GI not found in this query:")
+      print(inpAccD)
     else:
       resL.append(curL)    
 
@@ -322,7 +322,7 @@ def gene_symbol_wrangler(inpAcc):
   Take in a loaded json file which has gene symbols as results.
   Return a list with with the gene names from the query"""
   
-  print "processing gene symbols"
+  print("processing gene symbols")
   resL = []
   for inpAccD in inpAcc:
     queryI = inpAccD["Gene Symbol"]
@@ -338,7 +338,7 @@ def protein_gi_wrangler(inpAccessions):
   pick the largest GI number for each entry (this is really arbitrary though) and return a list of protein GIs. 
   These are unique identifiers (UIDs) that can be used by entrez.epost, entrez.efetch and such things.
   """
-  print "processing GenBank Protein GIs"
+  print("processing GenBank Protein GIs")
   resL = []
   for inpAccD in inpAccessions:
     queryL = inpAccD["GenBank Protein GI"].split("//")
@@ -349,8 +349,8 @@ def protein_gi_wrangler(inpAccessions):
       if curQuery > maxQ:
         maxQ = curQuery
     if maxQ == 1: 
-      print "GI not found in this query:"
-      print inpAccD
+      print("GI not found in this query:")
+      print(inpAccD)
     else:
       resL.append(maxQ)    
 
@@ -362,7 +362,7 @@ def refseq_gi_wrangler(inpAccessions):
   pick the smallest GI number for each entry (this should be a nice, full length sequence) and return a list of protein GIs. 
   These are unique identifiers (UIDs) that can be used by entrez.epost, entrez.efetch and such things.
   """
-  print "processing GenBank Protein GIs"
+  print("processing GenBank Protein GIs")
   resL = []
   for inpAccD in inpAccessions:
     queryL = inpAccD["RefSeq Protein GI"].split("//")
@@ -373,8 +373,8 @@ def refseq_gi_wrangler(inpAccessions):
       if curQuery < minQ:
         minQ = curQuery
     if minQ == 999999999999999: 
-      print "GI not found in this query:"
-      print inpAccD
+      print("GI not found in this query:")
+      print(inpAccD)
     else:
       resL.append(minQ)    
 
@@ -384,7 +384,7 @@ def accession_wrangler(inpAccessions):
   """to be called by prot_id_converter. 
   Take in a loaded json entry from biodbnet db2db which has genbank protein accession ID results. 
   Pick the refseq entry (NP) for each item and return a list of resulting refseq genbank protein accessions"""
-  print "processing GenBank Protein Accessions"
+  print("processing GenBank Protein Accessions")
   resL = []
   for inpAccD in inpAccessions:
     queryL = inpAccD["GenBank Protein Accession"].split("//")
@@ -395,8 +395,8 @@ def accession_wrangler(inpAccessions):
         findFlag = True
         break
     if not findFlag:
-      print "refseq entry not found in:"
-      print inpAccD
+      print("refseq entry not found in:")
+      print(inpAccD)
   return resL
   
 def prot_entrez_fetch(proteinList, retM="text", retT="fasta"):
@@ -412,28 +412,28 @@ def prot_entrez_fetch(proteinList, retM="text", retT="fasta"):
     try:
       int(i) # test if really a list of UIDs
     except ValueError:
-      print "was expecting UIDs like \"12345678\", but got something else instead:"
-      print i
+      print("was expecting UIDs like \"12345678\", but got something else instead:")
+      print(i)
       raise
     
-  proteinList = map(str, proteinList)
+  proteinList = list(map(str, proteinList))
   # print proteinList
   
-  print "connecting to Entrez..."
+  print("connecting to Entrez...")
   requestR = Entrez.epost("protein",id=",".join(proteinList)) # send all UIDs as a single query to entrez. 
   resultO = Entrez.read(requestR)
   webEnv = resultO["WebEnv"]
   queryKey = resultO["QueryKey"]
   handleO = Entrez.efetch(db="protein",retmode=retM, rettype=retT, webenv=webEnv, query_key=queryKey) # retrieve all results in batch
-  print "connection successful"
+  print("connection successful")
   if retT == "fasta":
     return entrez_fasta_parser(handleO)
   elif retM == "text" and retT == "gp": # use "gp" for genpept flatfile format, and "gb" for genbank flatfile for genes
     return handleO.read()
   else:
-    print "this data format was not expected:"
-    print "retmode: ", retM
-    print "rettype: ", retT
+    print("this data format was not expected:")
+    print("retmode: ", retM)
+    print("rettype: ", retT)
     raise ValueError
     
 def entrez_flatfile_parser(handleGB):
@@ -504,9 +504,9 @@ def go_term_advanced_lookup(protID):
   
   if protID not in idList: 
     
-    import urllib
+    import urllib.request, urllib.parse, urllib.error
   
-    txtS = urllib.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
+    txtS = urllib.request.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
     # print txtS.read()
     with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
       for fileLine in txtS:
@@ -519,9 +519,9 @@ def go_term_lookup(protID):
   
   Take in a list of uniprot IDs, cut them into batches of 100, get their respective GO terms and return htem"""
   
-  import urllib
+  import urllib.request, urllib.parse, urllib.error
   
-  txtS = urllib.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
+  txtS = urllib.request.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
   # print txtS.read()
   with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
     for fileLine in txtS:
@@ -665,7 +665,7 @@ def intact_parser():
     pass
       
   
-  print preyL
+  print(preyL)
   # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
   # return idList
       

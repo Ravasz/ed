@@ -43,8 +43,8 @@ with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-1
             if currGo not in goComp:
               goComp.append(currGo)        
           else:
-            print "got something odd:"
-            print goLine
+            print("got something odd:")
+            print(goLine)
             raise ValueError
  
       funS = ""

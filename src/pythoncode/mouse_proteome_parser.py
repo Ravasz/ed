@@ -24,7 +24,7 @@ this script was used only once and is not needed now
 '''
 def main():
   
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   
   relPath = "datafiles/UP000000589_10090_additional.fasta"
   relOut = "datafiles/mouse_proteome.fasta"

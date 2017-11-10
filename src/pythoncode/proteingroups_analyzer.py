@@ -43,9 +43,11 @@ cfg file layout:
 '''
 
 def main():
-  print "call a function here to start"
+  from Bio.SeqUtils.ProtParam import ProteinAnalysis  
+  import numpy
+  print("call a function here to start")
   #file_analyzer()
-  file_combiner()
+  #file_combiner()
   
   
 
@@ -64,7 +66,7 @@ def file_analyzer():
   if os.path.isfile("proteingroups_analyzer_params.cfg"): # check if cfg file exists
     pass
   else:
-    print "the config file named proteingroups_analyzer_params.cfg was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script"
+    print("the config file named proteingroups_analyzer_params.cfg was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script")
     sys.exit(0) # end the program if config file is not found
     
   with open("proteingroups_analyzer_params.cfg","r") as cfgF: # locate all the groups in cfgFile
@@ -101,7 +103,7 @@ def file_combiner():
   from copy import copy
   import sys, os.path
   
-  print "this is file_combiner"
+  print("this is file_combiner")
   
 
   inpFileList = []
@@ -114,10 +116,10 @@ def file_combiner():
       if cfgLine == "<Files>\n": # collect file names here
         lineCount = 0
         while True:
-          newLine = cfgFile.next()
+          newLine = next(cfgFile)
           lineCount += 1
           if lineCount == 20: 
-            print "something terrible has happened!"
+            print("something terrible has happened!")
             sys.exit(0)
           if newLine == "\n": continue
           elif newLine == "</Files>\n":
@@ -129,10 +131,10 @@ def file_combiner():
       if cfgLine == "<Outputfolder>\n": # collect output folder here
         lineCount = 0
         while True:
-          newLine = cfgFile.next()
+          newLine = next(cfgFile)
           lineCount += 1
           if lineCount == 20: 
-            print "something terrible has happened!"
+            print("something terrible has happened!")
             sys.exit(0)
           if newLine == "\n": continue
           else: 
@@ -143,39 +145,39 @@ def file_combiner():
       if cfgLine == "<Samples>\n": # place all samples from all groups into a single list 
         lineCount = 0
         while True:
-          newLine = cfgFile.next()
+          newLine = next(cfgFile)
 
           if newLine.rstrip("\n") == "</Samples>": break  
           lineCount += 1
           if lineCount == 40: 
-            print "something terrible has happened!"
+            print("something terrible has happened!")
             sys.exit(0)
           if newLine == "\n": continue
           if "<Group" in newLine:
             subLineCount = 0
             while True:
-              newLine = cfgFile.next()
+              newLine = next(cfgFile)
               if "</Group" in newLine:
                 break
               subLineCount += 1
               if subLineCount == 10: 
-                print "something terrible has happened!"
+                print("something terrible has happened!")
                 sys.exit(0)
               if newLine == "\n": continue
               
               groupList.append(newLine.rstrip("\n"))
 
   if len(groupList) < 2:
-    print "there should be at least 2 groups to compare. Please assign samples to groups in the cfg file."
+    print("there should be at least 2 groups to compare. Please assign samples to groups in the cfg file.")
     sys.exit(0)
   
-  print inpFileList
-  print groupList
+  print(inpFileList)
+  print(groupList)
       
   if os.path.isdir(outputFolder):    # check if output folder is correctly extracted from cfg file
-    print outputFolder
+    print(outputFolder)
   else:
-    print "output folder named %s not found. please check the outputfolder area in the config file and add a proper folder name in there" % (outputFolder,)
+    print("output folder named %s not found. please check the outputfolder area in the config file and add a proper folder name in there" % (outputFolder,))
     sys.exit(0)
 
   # by this point everything is collected from the cfg file that we need      
@@ -283,7 +285,7 @@ def file_combiner():
         # print uniqueL
 
         if curGene in outDict: # handle duplicate protein entries and merge them together
-          print "%s is duplicate" % curGene
+          print("%s is duplicate" % curGene)
           mergedL = []
           for mI in outDict[curGene][:3]:
             mergedL.append(mI)
@@ -300,8 +302,8 @@ def file_combiner():
           
         else: outDict[curGene] = uniqueL
       
-      print outDict["P20934"]
-      print fileCount
+      print(outDict["P20934"])
+      print(fileCount)
       
       # so it collects the relevant data from each of the files. As a next step
       # these dicts have to be merged to a single dict and then written to a file
@@ -423,7 +425,7 @@ def file_picker(cfgS):
   """open files for analysis from proteingroups_analyzer_params.cfg in the same directory"""
   
   
-  print "this is file_picker"
+  print("this is file_picker")
   
   import os.path, sys
   
@@ -442,11 +444,11 @@ def file_picker(cfgS):
         break
       if fileList:
         if not os.path.isfile(lineS):
-          print "file %s not found. Please check proteingroups_analyzer_params.cfg and try again." % (lineS,)
+          print("file %s not found. Please check proteingroups_analyzer_params.cfg and try again." % (lineS,))
           sys.exit(0)
         fileL.append(lineS)
     if not fileListComplete or not fileList:
-      print "something is wrong in the cfg file. Could not find file block. Please check if <File> and </File> tags are present"
+      print("something is wrong in the cfg file. Could not find file block. Please check if <File> and </File> tags are present")
       sys.exit(0)
   
   
@@ -468,7 +470,7 @@ def empty_line_remover(markerS):
       extraLines = contentsL[ungroupedStart + 1:ungroupedEnd]
       for extraLine in extraLines:
         if not extraLine.rstrip("\r\n") == "":
-          print "there are some %s samples in the config file already. Please clear them before starting again" % (markerS[1:-1].lower())
+          print("there are some %s samples in the config file already. Please clear them before starting again" % (markerS[1:-1].lower()))
           sys.exit(0)
   
   if extraLinesFlag:
@@ -484,7 +486,7 @@ def column_finder(filePath):
   import os.path
   import sys
 
-  print "\nchecking ",filePath, " ...\n"
+  print("\nchecking ",filePath, " ...\n")
     
   currF = open(filePath,"r")
   headerI = currF.readline().rstrip("\r\n")
@@ -497,10 +499,10 @@ def column_finder(filePath):
     if headI[:9] == "Peptides ":
       # print headI[9:]
       sampleL.append(headI[9:])
-  print "samples found:"
+  print("samples found:")
   sampleCount = 1
   for sampleS in sampleL:
-    print "%d) %s-%d" % (sampleCount,sampleS,fileCount,)
+    print("%d) %s-%d" % (sampleCount,sampleS,fileCount,))
     sampleCount += 1
   currF.close()
   
@@ -509,7 +511,7 @@ def column_finder(filePath):
     global outputFolder
     outputFolder = contentsL[contentsL.index("<Outputfolder>\n") + 1].rstrip("\r\n")
     if not os.path.isdir(outputFolder):
-      print outputFolder, " was not found or is not a folder"
+      print(outputFolder, " was not found or is not a folder")
       sys.exit(0)
     for sampleI in sampleL:
       unGroupedN = contentsL.index("</Ungrouped>\n")
@@ -521,7 +523,7 @@ def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
   like remove leftover spaces and commas in it then add fold change and FDR score"""
   from math import log
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   
   fdrN = 0.05
   def p_value_key(protItem):
@@ -558,7 +560,7 @@ def ROutputFormatter():
   protList.sort(key = p_value_key) # sort the whole list on p value (lowest to highest) 
   i = 0.0 
   m = float(len(protList))
-  print "dataset length: ", int(m)
+  print("dataset length: ", int(m))
   outputF = file_outporter("bob/processed/OST-24-05-2017_combined_ttest_ed_2.csv")
   outputF.write("ID,UniprotID,Gene name,OST1,OST2,OST3,WT1,WT2,WT3,pValue-wilcox,FDR,log2FoldChange\n")
   for protListI in protList:
@@ -569,7 +571,7 @@ def ROutputFormatter():
       FAvg = (protListI[3] + protListI[4] + protListI[5])/3.0 # OST
       SAvg = (protListI[6] + protListI[7] + protListI[8])/3.0 # OT1
     except TypeError:
-      print curLine
+      print(curLine)
       raise
     try:
       logFoldChange = log(FAvg/SAvg,2) # so positive numbers are more abundant in the OST cells, negatives number in the OT1 cells, at least for the OST IP mass spec file
@@ -584,11 +586,11 @@ def ROutputFormatter():
       else:
         outputF.write(",")
       
-  print "formatting complete"
+  print("formatting complete")
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
   
   protList = []
   headerFlag = True
@@ -599,7 +601,7 @@ def kegg_converter():
         continue
       inpList = inpLine.split(",")
       protList.append(inpList[1])
-  print prot_id_converter(protList, outDB="kegggeneid")
+  print(prot_id_converter(protList, outDB="kegggeneid"))
   
 def scrambler():
   """
@@ -621,7 +623,7 @@ def scrambler():
         giantList.append(float(inpI))
 
   shuffledList = random.sample(giantList, len(giantList)) # this does the randomization
-  print "input scrambled"
+  print("input scrambled")
   with open("../bob/bob_decoy_lfq.csv", "w") as outF:
     outF.write("LFQ scrambled 1,LFQ scrambled 2,LFQ scrambled 3,LFQ scrambled 4,LFQ scrambled 5,LFQ scrambled 6\n")
     lineCount = 0
@@ -632,12 +634,12 @@ def scrambler():
       else:
         outF.write(str(listItem) + "\n")
         lineCount = 0
-  print "output written to: " + str(outF.name)
+  print("output written to: " + str(outF.name))
 
 def volcano_plotter():
   """take in a full list of genes and reformat them for the volcano plot R script. 
   output the reformatted data to a new file"""
-  print "this is volcano plotter"
+  print("this is volcano plotter")
   from math import log
   with open("../bob/processed/24h_bobdata_ed2_volcano.csv", "w") as outF:
     outF.write("Gene log2FoldChange pvalue\n")
@@ -663,7 +665,7 @@ def volcano_plotter():
           FAvg = (curLine[4] + curLine[5] + curLine[6])/3.0 # KO
           SAvg = (curLine[7] + curLine[8] + curLine[9])/3.0 # WT
         except TypeError:
-          print curLine
+          print(curLine)
           raise
         logFoldChange = log(SAvg/FAvg,2) # so positive numbers are more abundant in the wt cells, negatives number in the KO, at least for the 24H bobdata file
         outF.write(curLine[2] + " " + str(logFoldChange) + " " + str(curLine[10]) + "\n") # write out results 
@@ -679,7 +681,7 @@ def set_fdr(fdrN = 0.05):
   
   This reads the whole dataset into memory, and so it might be demanding.
   """
-  print "this is set_fdr"
+  print("this is set_fdr")
   def p_value_key(protItem):
     """mini function returning the last element of a list. just because I do not like unnamed functions"""
     return protItem[-1]
@@ -704,21 +706,21 @@ def set_fdr(fdrN = 0.05):
   protList.sort(key = p_value_key) # sort the whole list on p value (lowest to highest) 
   i = 0.0 # see i and m in the function description
   m = float(len(protList))
-  print "dataset length: ", m
+  print("dataset length: ", m)
   for protListI in protList:
     i += 1
     critVal = (i/m)*fdrN # this is the benjamini-hochberg defined critical value
-    print "threshold: ", critVal # this is the adjusted p value the current measurement has to pass
-    print "current p value: ", protListI[-1]
+    print("threshold: ", critVal) # this is the adjusted p value the current measurement has to pass
+    print("current p value: ", protListI[-1])
     if protListI[-1] < critVal:
-      print protListI
+      print(protListI)
     else:
-      print "p value did not pass threshold. No other significant proteins in dataset."
+      print("p value did not pass threshold. No other significant proteins in dataset.")
       break
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -728,7 +730,7 @@ def interactor_finder():
         curName = curName[0] + curName[1:].lower()
         proteinList.append(curName)
   inpIdL = prot_id_converter(proteinList, "10090", "genesymbol", "uniprotaccession") # convert to uniprot accessions
-  print inpIdL
+  print(inpIdL)
   
   with open("../bob/processed/bobprots_all.csv","r") as targetF: # create list of all uniprot accessions in Bob's dataset (unique razor proteins only)
     targetD = {}
@@ -737,15 +739,15 @@ def interactor_finder():
   for inpIdItem in inpIdL:
     for queryI in inpIdItem:
       if queryI in targetD:
-        print targetD[queryI]
+        print(targetD[queryI])
         break
         
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   from math import log
   
-  print "this is stat parser"
+  print("this is stat parser")
   
   relPath = "bob/processed/24h_bobdata_ed2.csv"
   outPathUp = "bob/processed/24h_bobprots_up_full.csv"
@@ -799,7 +801,7 @@ def stat_parser():
   inpF.close()
   outFUp.close()
   outFDown.close()
-  print "stat_parser completed"
+  print("stat_parser completed")
 
 def protein_name_collector():
   """take all uniprot IDs (but only one per protein) from bob's dataset and return them as a single list"""
@@ -818,7 +820,7 @@ def lfq_parser():
   import os.path
   # from math import log10
   
-  print "this is lfq parser"
+  print("this is lfq parser")
   
   """
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
@@ -871,7 +873,7 @@ def lfq_parser():
         try:
           outF.write(str(int(lfqI)) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpLFQ[-1] == "_" or inpLFQ[-1] == "0": outF.write(str(randint(1,1000)) + "\n")
@@ -905,7 +907,7 @@ def lfq_parser():
   
   """
   
-  print "lfq parser finished successfully"
+  print("lfq parser finished successfully")
   
 def lfq_parser_2x():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
@@ -913,11 +915,11 @@ def lfq_parser_2x():
   
   Only include hits which appear at least in two OST samples
   """
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   # from random import random
   from math import log10
   
-  print "this is lfq parser_2x"
+  print("this is lfq parser_2x")
   
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
   outPath = "bob/processed/OST-24-05-2017_combined_no0_2.csv"
@@ -975,7 +977,7 @@ def lfq_parser_2x():
         try:
           outF.write(str(round(log10(int(lfqI)))) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpLFQ[-1] == "_" or inpLFQ[-1] == "0": outF.write(str(0) + "\n")
@@ -984,7 +986,7 @@ def lfq_parser_2x():
     
     rowCount += 1
 
-  print "lfq parser 2x finished successfully"
+  print("lfq parser 2x finished successfully")
 
 def spectrum_parser():
   """remove 0 values from spectral counts and replace them with a random number between 0 and 1
@@ -992,11 +994,11 @@ def spectrum_parser():
   
   This function is a modification of the lfq_parser()
   """
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   from random import random
   # from math import log10
   
-  print "this is spectrum parser"
+  print("this is spectrum parser")
   
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
   outPath = "bob/processed/OST-24-05-2017_combined_no0_spectrum.csv"
@@ -1039,7 +1041,7 @@ def spectrum_parser():
         try:
           outF.write(str(lfqI) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpSP[-1] == "_" or inpSP[-1] == "0": outF.write(str(random()) + "\n")
@@ -1114,7 +1116,7 @@ def entry_parser():
   from collections import defaultdict
   import os.path
   
-  print "this is entry parser"
+  print("this is entry parser")
   
   # inPathL = ["bob/processed/proteinGroups - OST-1-09042017.txt","bob/processed/proteinGroups_OST2.txt","bob/processed/proteinGroups_OST3.txt"]
   inpathL = []
@@ -1287,14 +1289,14 @@ def entry_parser():
       outDict[curGene] = corrLine
 
     
-  print fileCount
+  print(fileCount)
   
 
   #   if not newFlag: print fileCount, testKey, finDict[testKey]     
   # if newFlag:
   #   newFlag = False
   
-  for outKey,outValue in outDict.items(): 
+  for outKey,outValue in list(outDict.items()): 
     if outKey in finDict: # add modified dicts together into single, unified dict
       # print fileCount, finDict[outKey]
       # print outValue
@@ -1330,10 +1332,10 @@ def entry_parser():
         finDict[testKey][i].append("")
 
   if len(inpathL) > 1: fileCount += 1 # this is needed if multiple files are parsed
-  for finK, finV in finDict.items():
+  for finK, finV in list(finDict.items()):
     for finI in finV[-1]:
-      if finI <> "unique" and finI <> "":
-        print finK, finV
+      if finI != "unique" and finI != "":
+        print(finK, finV)
 
     
   
@@ -1363,13 +1365,13 @@ def entry_parser():
     outF.write(headList[-1].replace(",",".") + "\n")
   
   else:
-    print "number of input files should be at least one. Got less somehow"
+    print("number of input files should be at least one. Got less somehow")
     raise ValueError
     
   
-  for outDK, outDV in finDict.items(): # write out assembled results to a file
+  for outDK, outDV in list(finDict.items()): # write out assembled results to a file
     outN += 1
-    if len(outDK) > 30: print "this line should not be displayed"
+    if len(outDK) > 30: print("this line should not be displayed")
     # print outDV[1]
     # if outN == 100: break
     nameCount = 0
@@ -1387,8 +1389,8 @@ def entry_parser():
     outF.write("\n")
   
 
-  print "unique proteins: ", outN
-  print "lines parsed: ", cN
+  print("unique proteins: ", outN)
+  print("lines parsed: ", cN)
   # print headerLine
   inpF.close()
   outF.close()
@@ -1426,8 +1428,8 @@ def crapome_parser():
   
   # print "Contaminant treshold: " + str(contTreshold)
   
-  print "lines parsed: " + str(fileLength)
-  print "Number of results: " + str(len(resD))
+  print("lines parsed: " + str(fileLength))
+  print("Number of results: " + str(len(resD)))
   
       
 #   inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")

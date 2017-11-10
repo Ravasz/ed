@@ -15,7 +15,7 @@ find significantly enriched proteins in maxquant output data. This script is a m
 '''
 
 def main():
-  print "call a function here to start"
+  print("call a function here to start")
   # ROutputFormatter()
   crapome_parser()
 
@@ -32,7 +32,7 @@ def ROutputFormatter():
   """take a terrible output file from R and format it it in a more nice way, 
   like remove leftover spaces and commas in it then add fold change and FDR score"""
   from math import log
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   
   fdrN = 0.05
   def p_value_key(protItem):
@@ -69,7 +69,7 @@ def ROutputFormatter():
   protList.sort(key = p_value_key) # sort the whole list on p value (lowest to highest) 
   i = 0.0 
   m = float(len(protList))
-  print "dataset length: ", int(m)
+  print("dataset length: ", int(m))
   outputF = file_outporter("bob/processed/OST-24-05-2017_combined_ttest_ed_2.csv")
   outputF.write("ID,UniprotID,Gene name,OST1,OST2,OST3,WT1,WT2,WT3,pValue-wilcox,FDR,log2FoldChange\n")
   for protListI in protList:
@@ -80,7 +80,7 @@ def ROutputFormatter():
       FAvg = (protListI[3] + protListI[4] + protListI[5])/3.0 # OST
       SAvg = (protListI[6] + protListI[7] + protListI[8])/3.0 # OT1
     except TypeError:
-      print curLine
+      print(curLine)
       raise
     try:
       logFoldChange = log(FAvg/SAvg,2) # so positive numbers are more abundant in the OST cells, negatives number in the OT1 cells, at least for the OST IP mass spec file
@@ -95,11 +95,11 @@ def ROutputFormatter():
       else:
         outputF.write(",")
       
-  print "formatting complete"
+  print("formatting complete")
   
 def kegg_converter():
   """process list of uniprot accessions for KEGG pathway analysis"""
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
   
   protList = []
   headerFlag = True
@@ -110,7 +110,7 @@ def kegg_converter():
         continue
       inpList = inpLine.split(",")
       protList.append(inpList[1])
-  print prot_id_converter(protList, outDB="kegggeneid")
+  print(prot_id_converter(protList, outDB="kegggeneid"))
   
 def scrambler():
   """
@@ -132,7 +132,7 @@ def scrambler():
         giantList.append(float(inpI))
 
   shuffledList = random.sample(giantList, len(giantList)) # this does the randomization
-  print "input scrambled"
+  print("input scrambled")
   with open("../bob/bob_decoy_lfq.csv", "w") as outF:
     outF.write("LFQ scrambled 1,LFQ scrambled 2,LFQ scrambled 3,LFQ scrambled 4,LFQ scrambled 5,LFQ scrambled 6\n")
     lineCount = 0
@@ -143,12 +143,12 @@ def scrambler():
       else:
         outF.write(str(listItem) + "\n")
         lineCount = 0
-  print "output written to: " + str(outF.name)
+  print("output written to: " + str(outF.name))
 
 def volcano_plotter():
   """take in a full list of genes and reformat them for the volcano plot R script. 
   output the reformatted data to a new file"""
-  print "this is volcano plotter"
+  print("this is volcano plotter")
   from math import log
   with open("../bob/processed/24h_bobdata_ed2_volcano.csv", "w") as outF:
     outF.write("Gene log2FoldChange pvalue\n")
@@ -174,7 +174,7 @@ def volcano_plotter():
           FAvg = (curLine[4] + curLine[5] + curLine[6])/3.0 # KO
           SAvg = (curLine[7] + curLine[8] + curLine[9])/3.0 # WT
         except TypeError:
-          print curLine
+          print(curLine)
           raise
         logFoldChange = log(SAvg/FAvg,2) # so positive numbers are more abundant in the wt cells, negatives number in the KO, at least for the 24H bobdata file
         outF.write(curLine[2] + " " + str(logFoldChange) + " " + str(curLine[10]) + "\n") # write out results to file
@@ -191,7 +191,7 @@ def set_fdr(fdrN = 0.05):
   
   This reads the whole dataset into memory, and so it might be demanding.
   """
-  print "this is set_fdr"
+  print("this is set_fdr")
   def p_value_key(protItem):
     """mini function returning the last element of a list. just because I do not like unnamed functions"""
     return protItem[-1]
@@ -216,16 +216,16 @@ def set_fdr(fdrN = 0.05):
   protList.sort(key = p_value_key) # sort the whole list on p value (lowest to highest) 
   i = 0.0 # see i and m in the function description
   m = float(len(protList))
-  print "dataset length: ", m
+  print("dataset length: ", m)
   for protListI in protList:
     i += 1
     critVal = (i/m)*fdrN # this is the benjamini-hochberg defined critical value
-    print "threshold: ", critVal # this is the adjusted p value the current measurement has to pass
-    print "current p value: ", protListI[-1]
+    print("threshold: ", critVal) # this is the adjusted p value the current measurement has to pass
+    print("current p value: ", protListI[-1])
     if protListI[-1] < critVal:
-      print protListI
+      print(protListI)
     else:
-      print "p value did not pass threshold. No other significant proteins in dataset."
+      print("p value did not pass threshold. No other significant proteins in dataset.")
       break
 
 
@@ -233,7 +233,7 @@ def set_fdr(fdrN = 0.05):
 
 def interactor_finder():
   """take a list of protein names and check if they are in Bob's dataset"""
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
 
   proteinList = []
   with open("../datafiles/known_interactors.txt","r") as inpProt: # create list of gene names from hand-made text file with known ptp22 interactors
@@ -243,7 +243,7 @@ def interactor_finder():
         curName = curName[0] + curName[1:].lower()
         proteinList.append(curName)
   inpIdL = prot_id_converter(proteinList, "10090", "genesymbol", "uniprotaccession") # convert to uniprot accessions
-  print inpIdL
+  print(inpIdL)
   
   with open("../bob/processed/bobprots_all.csv","r") as targetF: # create list of all uniprot accessions in Bob's dataset (unique razor proteins only)
     targetD = {}
@@ -252,7 +252,7 @@ def interactor_finder():
   for inpIdItem in inpIdL:
     for queryI in inpIdItem:
       if queryI in targetD:
-        print targetD[queryI]
+        print(targetD[queryI])
         break
         
     
@@ -262,10 +262,10 @@ def interactor_finder():
 
 def stat_parser():
   """take protein names with a significant p value and out them to a result file"""
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   from math import log
   
-  print "this is stat parser"
+  print("this is stat parser")
   
   relPath = "bob/processed/24h_bobdata_ed2.csv"
   outPathUp = "bob/processed/24h_bobprots_up_full.csv"
@@ -319,7 +319,7 @@ def stat_parser():
   inpF.close()
   outFUp.close()
   outFDown.close()
-  print "stat_parser completed"
+  print("stat_parser completed")
 
 def protein_name_collector():
   """take all uniprot IDs (but only one per protein) from bob's dataset and return them as a single list"""
@@ -338,7 +338,7 @@ def lfq_parser():
   import os.path
   # from math import log10
   
-  print "this is lfq parser"
+  print("this is lfq parser")
   
   """
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
@@ -391,7 +391,7 @@ def lfq_parser():
         try:
           outF.write(str(int(lfqI)) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpLFQ[-1] == "_" or inpLFQ[-1] == "0": outF.write(str(randint(1,1000)) + "\n")
@@ -425,7 +425,7 @@ def lfq_parser():
   
   """
   
-  print "lfq parser finished successfully"
+  print("lfq parser finished successfully")
   
 def lfq_parser_2x():
   """remove 0 values from lfq measurements and replace them with a random number between 1 and 100
@@ -433,11 +433,11 @@ def lfq_parser_2x():
   
   Only include hits which appear at least in two OST samples
   """
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   # from random import random
   from math import log10
   
-  print "this is lfq parser_2x"
+  print("this is lfq parser_2x")
   
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
   outPath = "bob/processed/OST-24-05-2017_combined_no0_2.csv"
@@ -495,7 +495,7 @@ def lfq_parser_2x():
         try:
           outF.write(str(round(log10(int(lfqI)))) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpLFQ[-1] == "_" or inpLFQ[-1] == "0": outF.write(str(0) + "\n")
@@ -504,7 +504,7 @@ def lfq_parser_2x():
     
     rowCount += 1
 
-  print "lfq parser 2x finished successfully"
+  print("lfq parser 2x finished successfully")
 
 def spectrum_parser():
   """remove 0 values from spectral counts and replace them with a random number between 0 and 1
@@ -512,11 +512,11 @@ def spectrum_parser():
   
   This function is a modification of the lfq_parser()
   """
-  from tools import file_importer, file_outporter
+  from .tools import file_importer, file_outporter
   from random import random
   # from math import log10
   
-  print "this is spectrum parser"
+  print("this is spectrum parser")
   
   relPath = "bob/processed/OST-24-05-2017_combined.csv"
   outPath = "bob/processed/OST-24-05-2017_combined_no0_spectrum.csv"
@@ -559,7 +559,7 @@ def spectrum_parser():
         try:
           outF.write(str(lfqI) + ",")
         except ValueError:
-          print inpItems
+          print(inpItems)
           raise
     
     if inpSP[-1] == "_" or inpSP[-1] == "0": outF.write(str(random()) + "\n")
@@ -637,7 +637,7 @@ def entry_parser():
   from collections import defaultdict
   import os.path
   
-  print "this is entry parser"
+  print("this is entry parser")
   
   # inPathL = ["bob/processed/proteinGroups - OST-1-09042017.txt","bob/processed/proteinGroups_OST2.txt","bob/processed/proteinGroups_OST3.txt"]
   inpathL = []
@@ -810,14 +810,14 @@ def entry_parser():
       outDict[curGene] = corrLine
 
     
-  print fileCount
+  print(fileCount)
   
 
   #   if not newFlag: print fileCount, testKey, finDict[testKey]     
   # if newFlag:
   #   newFlag = False
   
-  for outKey,outValue in outDict.items(): 
+  for outKey,outValue in list(outDict.items()): 
     if outKey in finDict: # add modified dicts together into single, unified dict
       # print fileCount, finDict[outKey]
       # print outValue
@@ -853,10 +853,10 @@ def entry_parser():
         finDict[testKey][i].append("")
 
   if len(inpathL) > 1: fileCount += 1 # this is needed if multiple files are parsed
-  for finK, finV in finDict.items():
+  for finK, finV in list(finDict.items()):
     for finI in finV[-1]:
-      if finI <> "unique" and finI <> "":
-        print finK, finV
+      if finI != "unique" and finI != "":
+        print(finK, finV)
 
     
   
@@ -886,13 +886,13 @@ def entry_parser():
     outF.write(headList[-1].replace(",",".") + "\n")
   
   else:
-    print "number of input files should be at least one. Got less somehow"
+    print("number of input files should be at least one. Got less somehow")
     raise ValueError
     
   
-  for outDK, outDV in finDict.items(): # write out assembled results to a file
+  for outDK, outDV in list(finDict.items()): # write out assembled results to a file
     outN += 1
-    if len(outDK) > 30: print "this line should not be displayed"
+    if len(outDK) > 30: print("this line should not be displayed")
     # print outDV[1]
     # if outN == 100: break
     nameCount = 0
@@ -910,8 +910,8 @@ def entry_parser():
     outF.write("\n")
   
 
-  print "unique proteins: ", outN
-  print "lines parsed: ", cN
+  print("unique proteins: ", outN)
+  print("lines parsed: ", cN)
   # print headerLine
   inpF.close()
   outF.close()
@@ -921,14 +921,14 @@ def file_parser():
   """from bob"s proteinGroups.txt take: Majority protein IDs Peptide counts (razor+unique) ['LFQ intensity KO1', 'LFQ intensity KO2', 'LFQ intensity KO3', 'LFQ intensity WT1', 'LFQ intensity WT2', 'LFQ intensity WT3']
   and write them to a new file. do not select contaminants or reverse peptides"""
 
-  from tools import file_importer, file_outporter
-  print "this is file parser"
+  from .tools import file_importer, file_outporter
+  print("this is file parser")
   inpF = file_importer("bob/24h_proteingroups.csv")
   outF = file_outporter("bob/processed/24h_bobdata.csv")
   for inpLine in inpF:
     inpP = inpLine.split("\r")
     cN = 0
-    print len(inpP)
+    print(len(inpP))
     for inpI in inpP:
       inpItems = inpI.split("\t") 
       if inpItems[100] == "+" or inpItems[101] == "+": continue # get rid of contaminants and reverse proteins
@@ -941,7 +941,7 @@ def file_parser():
 
   inpF.close()
   outF.close()
-  print cN
+  print(cN)
   
 def crapome_parser():
   """take crapome 1.1 tab delimited file as input and add it to the output of the lfq_parser method in proteingroups_parser.py.
@@ -972,8 +972,8 @@ def crapome_parser():
   
   # print "Contaminant treshold: " + str(contTreshold)
   
-  print "lines parsed: " + str(fileLength)
-  print "Number of results: " + str(len(resD))
+  print("lines parsed: " + str(fileLength))
+  print("Number of results: " + str(len(resD)))
       
   #   inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
   #   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
@@ -995,7 +995,7 @@ def crapome_parser():
     else: outF.write("0")
     
     outF.write("\n")
-  print "results written to file"
+  print("results written to file")
 
   
 if __name__ == "__main__":

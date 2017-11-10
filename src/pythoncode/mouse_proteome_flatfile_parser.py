@@ -9,7 +9,7 @@ and protein 24H T4 datast to find proteins we actually detected.
 
 def main():
   """main function"""
-  print "this is mouse_proteome_flatfile_parser"
+  print("this is mouse_proteome_flatfile_parser")
 
 def sh2_dicter():
   """read in the curated sh2 containing protein list and return it as a neat dict"""
@@ -82,7 +82,7 @@ def sh2_counter():
           curDom = inpLine[13:].strip("\"").replace(",","-")
           newEntry = False
           foundFlag = True
-    print "file parsed successfully."
+    print("file parsed successfully.")
   
   with open("processed_data/sh2_containing_proteins_mouse.csv","w") as outF:
     
@@ -96,7 +96,7 @@ def sh2_counter():
         outF.write(",")
       outF.write(resD[itemStr][-1])
       outF.write("\n")
-    print "%d outputs written to result file" %(len(resD))
+    print("%d outputs written to result file" %(len(resD)))
 
 
 if __name__ == "__main__":

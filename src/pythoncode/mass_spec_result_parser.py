@@ -8,7 +8,7 @@ Take in a list of hits from my OST mass spectrometry prepared by Thierry, and re
 updated for new project layout 17-08-2017
 '''
 
-from tools import prot_id_converter
+from .tools import prot_id_converter
 import os.path
 
 with open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ot1-16062016.csv"),"r") as inpF:
@@ -41,5 +41,5 @@ with open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ot1
     for geneI in geneL:
       outF.write(geneI + "\n")
       
-print "done"
+print("done")
         

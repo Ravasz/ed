@@ -8,7 +8,7 @@ Then, get all their sequences from entrez and write these out in STDOut.
 '''
 
 def main():
-  print "this is ppi_parser \n"
+  print("this is ppi_parser \n")
   # name_collector()
   # sh3_counter()
   protname_compare()
@@ -45,7 +45,7 @@ def protname_compare():
 
   for outI in fullList:
     titleL.append(outI.upper())
-    print outI.upper()
+    print(outI.upper())
   return titleL
 
 def biogrid_parser():
@@ -53,9 +53,9 @@ def biogrid_parser():
   """
   
   import os.path
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
   
-  print "processing biogrid file"
+  print("processing biogrid file")
   
   inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-117604-3.4.151.tab2.txt"),"r")
   
@@ -90,10 +90,10 @@ def intact_parser(outDataType = "genesymbol"):
   todo:
   - retrieve both gene name and full protein name
   """
-  from tools import prot_id_converter
+  from .tools import prot_id_converter
   import os.path
   
-  print "processing intact file"
+  print("processing intact file")
   
   baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
   
@@ -176,7 +176,7 @@ def intact_parser(outDataType = "genesymbol"):
 def name_collector():
   """look up protein interactors, download their fasta sequences to extract their names. 
   Print the names to STDout"""
-  from tools import prot_entrez_fetch
+  from .tools import prot_entrez_fetch
   
   resD = {}
   intactIdList = intact_parser("refseqproteingi") 
@@ -223,9 +223,9 @@ def name_collector():
     if shortName.upper() not in resD and shortName != "":
       resD[shortName.upper()] = longName
       
-  for j,k in resD.items():
-    print j #, ": ", k
-  print len(resD)
+  for j,k in list(resD.items()):
+    print(j) #, ": ", k
+  print(len(resD))
   
   """fastaL = prot_entrez_fetch(idList, retM="text", retT="fasta")
   for fastaItem in fastaL:
@@ -236,7 +236,7 @@ def name_collector():
 def sh3_counter():
   """look up a list of uniprot IDs, download their full genbank entries from the Entrez database 
   and count the number of SH3 domains the interactors have. Print the results to STDout"""
-  from tools import prot_entrez_fetch, prot_id_converter
+  from .tools import prot_entrez_fetch, prot_id_converter
   # from bobdata_parser import protein_name_collector
   fullPreyL = protname_compare()
   # fullPreyL = intact_parser() # to use for Ptpn22 interactome
@@ -255,26 +255,26 @@ def sh3_counter():
       lenCount += 1
       if lenCount == 200:
         batchCount += 1
-        print "processing batch number %d of Uniprot IDs..." % (batchCount, )
+        print("processing batch number %d of Uniprot IDs..." % (batchCount, ))
         idList = prot_id_converter(preyL, "10090", outDB="refseqproteingi")
         seqL = seqL + prot_entrez_fetch(idList, retM="gb", retT="text").split("\n") # fetch the complete genbank entries from entrez using this function from tools.py
         lenCount = 0
         idList = []
         preyL = []
         
-        print "this was batch number %d of %d" %(batchCount, maxBatch) 
-        print ""
+        print("this was batch number %d of %d" %(batchCount, maxBatch)) 
+        print("")
     if lenCount != 0:
       batchCount += 1
-      print "processing batch number %d of Uniprot IDs..." % (batchCount, )
+      print("processing batch number %d of Uniprot IDs..." % (batchCount, ))
       idList = prot_id_converter(preyL, "10090", outDB="refseqproteingi")
       seqL = seqL + prot_entrez_fetch(idList, retM="gb", retT="text").split("\n") # fetch the complete genbank entries from entrez using this function from tools.py
       lenCount = 0
       idList = []
       preyL = []
       
-      print "this was batch number %d of %d" %(batchCount, maxBatch) 
-      print ""
+      print("this was batch number %d of %d" %(batchCount, maxBatch)) 
+      print("")
       
         
   else: 
@@ -323,8 +323,8 @@ def sh3_counter():
       else: 
         regionFlag = False
         sHFlag = True
-  print "%d SH3 domains found in %d domains of %d proteins" % (sHCount, regionCount, protCount)
-  print "%d proteins out of %d contain SH3 domains" % (shProtCount, protCount)
+  print("%d SH3 domains found in %d domains of %d proteins" % (sHCount, regionCount, protCount))
+  print("%d proteins out of %d contain SH3 domains" % (shProtCount, protCount))
 
 def intact_publications():
   """open orc6.txt and extract publication first authors and pubmed IDs. 
@@ -348,9 +348,9 @@ def intact_publications():
           if "pubmed" in listItem:
             pubmedIDList.append(listItem.split(":")[1])
       
-  print pubD
-  print len(pubD)
-  print pubmedIDList
+  print(pubD)
+  print(len(pubD))
+  print(pubmedIDList)
 
 
 if __name__ == "__main__":

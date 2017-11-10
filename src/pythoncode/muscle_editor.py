@@ -14,18 +14,18 @@ with open("/home/mate/workspace/katamari/src/ed/datafiles/muscle-I20160628-17292
   startFlag = True
   for inpLine in inpF:
     inpLine = inpLine[33:].strip(" \n")
-    print repr(inpLine)
+    print(repr(inpLine))
     if startFlag:
       startFlag = False
       continue
     inpS = inpLine.rstrip()
     if inpS == "": 
       lineCount = 0
-      print "+++"
+      print("+++")
       continue
     try:
       sL[lineCount] += inpS 
-      print len(inpS)
+      print(len(inpS))
     except IndexError:
       sL.append(inpS)
     lineCount += 1
