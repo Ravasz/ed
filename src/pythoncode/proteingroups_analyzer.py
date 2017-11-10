@@ -43,11 +43,9 @@ cfg file layout:
 '''
 
 def main():
-  from Bio.SeqUtils.ProtParam import ProteinAnalysis  
-  import numpy
   print("call a function here to start")
   #file_analyzer()
-  #file_combiner()
+  file_combiner()
   
   
 
@@ -102,6 +100,9 @@ def file_combiner():
   from collections import defaultdict
   from copy import copy
   import sys, os.path
+  import pandas as pd
+  
+  pd.set_option("display.expand_frame_repr", False)
   
   print("this is file_combiner")
   
@@ -204,15 +205,19 @@ def file_combiner():
   
   dataCounter = 0
   fileCount = 0
+  colNums = []
   finDict = defaultdict(list)
  
   for dataFile in inpFileList:
     dataCounter += 1
     currGroupL = []   # select samples to analyze in each file
+    currColCount = 0 # count how many columns there are to analyze in each file
     for groupI in groupList:
       groupN = int(groupI.split("-")[-1])
       if groupN == dataCounter:
         currGroupL.append(groupI[:groupI.rindex("-")])
+        currColCount += 1
+    colNums.append(currColCount)
     # print currGroupL
     
     colL = [] # list of columns that are to be collected
@@ -232,6 +237,7 @@ def file_combiner():
       outDict = {}
       headerFlag = True
       neededColIndexes = []
+      neededColNames = []
       fileCount += 1
           
       for inpLine in inpF:
@@ -239,9 +245,10 @@ def file_combiner():
         if headerFlag:
           headerFlag = False
           inpItem = inpLine.rstrip("\r\n").split("\t")
-          for inpI in inpItem: # collect the position of columns that are to be copied into the results file
+          for inpI in inpItem: # collect the positions and names of columns that are to be copied into the results file
             if inpI in colL:
               neededColIndexes.append(inpItem.index(inpI))
+              neededColNames.append(inpI)
           # print neededColIndexes
           continue
         
@@ -307,8 +314,25 @@ def file_combiner():
       
       # so it collects the relevant data from each of the files. As a next step
       # these dicts have to be merged to a single dict and then written to a file
+      # adding in pandas here instead of fussing with dicts more
+      
+    outDF = pd.DataFrame.from_dict(outDict, orient = "index")
+    del outDF[0]
+    # print(outDF)
+    outDF.columns = neededColNames[1:]
+    outDF.index.name = neededColNames[0]
+    print(outDF)
+
       
 #       for outKey,outValue in outDict.items(): 
+#         if outKey not in finDict:
+#           finDict[outKey] = outDict[outKey][:3]
+#           for i in range(1,fileCount): # add zeroes to the line to represent previous iteration
+#             for j in range(colNums[fileCount-1]):
+#               finDict[outKey].append("0") # this bit isn't working yet
+
+            
+            
 #         if outKey in finDict:
 #           if len(finDict[outKey]) == fileCount -1: # if protein was present in previous file
             
