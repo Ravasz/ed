@@ -97,18 +97,25 @@ def file_combiner():
   add new entry to existing columns or a new line.
   """
 
-  from collections import defaultdict
-  from copy import copy
   import sys, os.path
   import pandas as pd
+  import scipy.stats
   
-  pd.set_option("display.expand_frame_repr", False)
+  pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
+  
+  def dfjoin(dfToJoin): 
+    """merge a series with indexes of the same name to a single object.
+    This is needed for processing gene names and protein names and is called upon merging dataframes"""
+    
+    if pd.isnull(dfToJoin.iloc[0]): return dfToJoin.iloc[1]
+    else: return dfToJoin.iloc[0]
   
   print("this is file_combiner")
   
 
   inpFileList = []
   groupList = []
+  resDF = pd.DataFrame()
   
   with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
 
@@ -172,6 +179,12 @@ def file_combiner():
     print("there should be at least 2 groups to compare. Please assign samples to groups in the cfg file.")
     sys.exit(0)
   
+  groupNumD = {}
+  for k in groupList:
+    groupNum = int(k.split("-")[1])
+    if groupNum not in groupNumD: groupNumD[groupNum] = 1
+    else: groupNumD[groupNum] += 1
+  
   print(inpFileList)
   print(groupList)
       
@@ -206,7 +219,6 @@ def file_combiner():
   dataCounter = 0
   fileCount = 0
   colNums = []
-  finDict = defaultdict(list)
  
   for dataFile in inpFileList:
     dataCounter += 1
@@ -249,7 +261,6 @@ def file_combiner():
             if inpI in colL:
               neededColIndexes.append(inpItem.index(inpI))
               neededColNames.append(inpI)
-          # print neededColIndexes
           continue
         
         inpLine = inpLine.rstrip("\r\n")
@@ -307,9 +318,11 @@ def file_combiner():
             posCount += 1
           outDict[curGene] = mergedL # add in unified scores
           
-        else: outDict[curGene] = uniqueL
+        else: 
+          outDict[curGene] = uniqueL
+          # if curGene == "A2AF47": print(inpItem)
       
-      print(outDict["P20934"])
+      # print(outDict["P20934"])
       print(fileCount)
       
       # so it collects the relevant data from each of the files. As a next step
@@ -317,74 +330,64 @@ def file_combiner():
       # adding in pandas here instead of fussing with dicts more
       
     outDF = pd.DataFrame.from_dict(outDict, orient = "index")
+    # print(outDF)
     del outDF[0]
     # print(outDF)
-    outDF.columns = neededColNames[1:]
+    outDF.columns = neededColNames[1:] # replace the column names of 1,2.3 to the appropriate header names
     outDF.index.name = neededColNames[0]
-    print(outDF)
+    outDF.rename(columns=lambda x: x + "-" + str(fileCount), inplace=True) # add a counter to the end of the column names so we can know which file they are from
+    outDF.rename({"Gene names-" + str(fileCount):"Gene names","Protein names-" + str(fileCount):"Protein names" },axis='columns', inplace=True) # protein names and gene names are unified below so they need to have the same column name
+    # print(outDF)
+    
+    if not resDF.empty: # combine the latest dataframe into the existing frame
+      outNamesDF = outDF.iloc[:,0:2]
+      resNamesDF = resDF.iloc[:,0:2]
+      mergedNamesDF = pd.concat([resNamesDF, outNamesDF], axis = 1)
+      unifiedNamesDF = mergedNamesDF.groupby(level=0, axis=1).apply(lambda x: x.apply(dfjoin, axis=1)) # merge together columns that have the same name, e.g. gene names with gene names and protein names with protein names
+      # print(unifiedNamesDF)
+      
 
       
-#       for outKey,outValue in outDict.items(): 
-#         if outKey not in finDict:
-#           finDict[outKey] = outDict[outKey][:3]
-#           for i in range(1,fileCount): # add zeroes to the line to represent previous iteration
-#             for j in range(colNums[fileCount-1]):
-#               finDict[outKey].append("0") # this bit isn't working yet
+      namedDF = pd.merge(unifiedNamesDF, resDF.iloc[:,2:], how='outer', left_index=True, right_index=True) # merge the actual samples with the data from the previous samples
+      mergedDF = pd.merge(namedDF, outDF.iloc[:,2:], how='outer', left_index=True, right_index=True)
+      mergedDF.fillna(0, inplace = True) # fill NaN values with zeros 
+      resDF = mergedDF
+      
+       
+      colNames = resDF.columns.tolist() # rearrange column names to make it moar pretty
+      
+      rearrangedCols = colNames[:2]
+      for colItem in colNames[2:]:
+        if "Peptides " in colItem:
+          rearrangedCols.append(colItem)
+          
+      for colItem in colNames[2:]:
+        if "Razor + unique peptides " in colItem:
+          rearrangedCols.append(colItem)      
+          
+      for colItem in colNames[2:]:
+        if "LFQ intensity " in colItem:
+          rearrangedCols.append(colItem)     
+          
+      resDF = resDF[rearrangedCols]
+      
 
-            
-            
-#         if outKey in finDict:
-#           if len(finDict[outKey]) == fileCount -1: # if protein was present in previous file
-            
+      
+    else: # true for first loop only
+      resDF = outDF
 
-#     for outKey,outValue in outDict.items(): 
-#       if outKey in finDict: # add modified dicts together into single, unified dict
-#         # print fileCount, finDict[outKey]
-#         # print outValue
-#         outIndex = 0
-#         for outItem in outValue:
-#           finDict[outKey][outIndex].append(outItem)
-#           outIndex += 1
-#         # print finDict[outKey]
-#    
-#       else:  # or just add new entries
-#         if fileCount == 1:
-#           for outItem in outValue:
-#             finDict[outKey].append([outItem])
-#          
-#         else: # fill up entries that were not present in the previous cycle
-#           loopCount = 0
-#           while loopCount < fileCount - 1:
-#             for i in range(len(outValue)):
-#               if len(finDict[outKey]) == i:
-#                 finDict[outKey].append([])
-#               else:
-#                 # print finDict[outKey]
-#                 finDict[outKey][i].append("")
-#             loopCount += 1
-#           outIndex = 0
-#           for outItem in outValue:
-#             # print finDict[outKey]
-#             finDict[outKey][outIndex].append(outItem)          
-#             outIndex += 1
-#             
-# #     for fKey, fValue in finDict.items():
-# #       pass
-# #       print fValue
-#    
-#     for testKey in finDict: # fill up entries in result dict which were not present in previous file
-#       if len(finDict[testKey][0]) < fileCount - 1:
-#         for i in range(len(finDict[testKey])):
-#           if i < 3:
-#             finDict[testKey][i].append("")
-#           else:
-#             finDict[testKey][i].append("0")
-#           
-# #     for fKey, fValue in finDict.items():
-# #       pass
-# #       print fValue
 
-     
+
+  print(resDF)
+  
+  # the dataframe is assembled and properly formatted at this point. now for the stats
+  
+  
+  for rowSeries in resDF.itertuples():
+    print(rowSeries)
+
+
+
          
        
 #       outN = 0  
