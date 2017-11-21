@@ -43,7 +43,7 @@ cfg file layout:
 '''
 
 def main():
-  print("call a function here to start")
+  # print("call a function here to start")
   #file_analyzer()
   file_combiner()
   
@@ -100,6 +100,8 @@ def file_combiner():
   import sys, os.path
   import pandas as pd
   import scipy.stats
+  from math import isnan,log2
+  from collections import defaultdict
   
   pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
   
@@ -111,10 +113,10 @@ def file_combiner():
     else: return dfToJoin.iloc[0]
   
   print("this is file_combiner")
-  
 
   inpFileList = []
   groupList = []
+  groupDict = defaultdict(list)
   resDF = pd.DataFrame()
   
   with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
@@ -148,7 +150,6 @@ def file_combiner():
           else: 
             outputFolder = newLine.rstrip("\n")
             break
-            
       
       if cfgLine == "<Samples>\n": # place all samples from all groups into a single list 
         lineCount = 0
@@ -158,26 +159,46 @@ def file_combiner():
           if newLine.rstrip("\n") == "</Samples>": break  
           lineCount += 1
           if lineCount == 40: 
-            print("something terrible has happened!")
+            print("something terrible has happened! more than 40 samples found")
             sys.exit(0)
           if newLine == "\n": continue
           if "<Group" in newLine:
             subLineCount = 0
+            currGroupName = newLine[1:-2]
+            groupDict[currGroupName] = [""]
+            groupDictFlag = True
+            
             while True:
               newLine = next(cfgFile)
+              
               if "</Group" in newLine:
                 break
               subLineCount += 1
               if subLineCount == 10: 
-                print("something terrible has happened!")
+                print("something terrible has happened! more than 10 samples are found in a group")
                 sys.exit(0)
               if newLine == "\n": continue
+              if groupDictFlag: # create a dict with group name as keyword and members of the group as values in a list 
+                groupDictFlag = False
+                groupDict[currGroupName] = [newLine.rstrip("\n")]
+              else: groupDict[currGroupName].append(newLine.rstrip("\n")) 
               
-              groupList.append(newLine.rstrip("\n"))
+              groupList.append(newLine.rstrip("\n")) # this list contains all the samples chosen for analysis. Almost the same as the groupdict, just without the group name info
+              
+  delList = [] # remove empty elements of dict
+  for groupIDs in groupDict.keys():
+    if groupDict[groupIDs] == [""]: delList.append(groupIDs)
+  
+  for delItem in delList:
+    del groupDict[delItem]
+    
+  if len(groupDict) > 2:
+    print("Sorry, can only compare 2 groups for the time being.")
+    sys.exit(0)    
 
-  if len(groupList) < 2:
-    print("there should be at least 2 groups to compare. Please assign samples to groups in the cfg file.")
-    sys.exit(0)
+  elif len(groupDict) < 2:
+    print("Need to have at least 2 groups to compare them")
+    sys.exit(0)                  
   
   groupNumD = {}
   for k in groupList:
@@ -185,37 +206,23 @@ def file_combiner():
     if groupNum not in groupNumD: groupNumD[groupNum] = 1
     else: groupNumD[groupNum] += 1
   
-  print(inpFileList)
-  print(groupList)
+  print("\nprocessing files: ")
+  for inpFileIP in inpFileList:
+    if os.path.isfile(inpFileIP): print(inpFileIP)
+    else: 
+      print("file %s not found" % (inpFileIP,))
+      sys.exit(0)
+  
+  print("\ngroups chosen: ")
+  for groupDictKey, groupDictValue in groupDict.items(): print(groupDictKey, ": ", groupDictValue)
       
-  if os.path.isdir(outputFolder):    # check if output folder is correctly extracted from cfg file
-    print(outputFolder)
-  else:
+  if not os.path.isdir(outputFolder):  # check if output folder is correctly extracted from cfg file
     print("output folder named %s not found. please check the outputfolder area in the config file and add a proper folder name in there" % (outputFolder,))
     sys.exit(0)
-
+  
   # by this point everything is collected from the cfg file that we need      
   
   outF = open(os.path.join(outputFolder, "combined.csv"),"w")
-  
-  # write header of output file: 
-  
-  outF.write("Majority protein ID,Protein name,Gene name,") 
-  for j in groupList:
-    outF.write("Peptides " + j + ",")
-  
-  for j in groupList:
-    outF.write("Razor + unique peptides " + j + ",")
-    
-  for j in groupList:
-    outF.write("LFQ intensity " + j + ",")
-    
-  outF.write("Fold change (Group1/Group2),Pvalue(Group1/Group2)\n")
-  
-  # header written
-    
-  
-  
   dataCounter = 0
   fileCount = 0
   colNums = []
@@ -241,8 +248,6 @@ def file_combiner():
     for sI in currGroupL:
       colL.append("LFQ intensity "+ sI)
 
-    
-     
     with open(dataFile,"r") as inpF:
    
       cN = 0
@@ -285,7 +290,8 @@ def file_combiner():
         for neededN in neededColIndexes:
           workingL.append(inpItem[neededN])
         
-        # print workingL
+        # print(workingL)
+        if workingL[1] == "": workingL[1] = " ".join(inpItem[7].split("|")[2].split("OS")[0].split(" ")[1:])  # add fasta header if full protein name is missing with this lovely one-liner
         
         uniqueL = []
         for workingI in workingL[:3]: # remove ambiguities 
@@ -323,7 +329,7 @@ def file_combiner():
           # if curGene == "A2AF47": print(inpItem)
       
       # print(outDict["P20934"])
-      print(fileCount)
+      # print(fileCount)
       
       # so it collects the relevant data from each of the files. As a next step
       # these dicts have to be merged to a single dict and then written to a file
@@ -345,15 +351,12 @@ def file_combiner():
       mergedNamesDF = pd.concat([resNamesDF, outNamesDF], axis = 1)
       unifiedNamesDF = mergedNamesDF.groupby(level=0, axis=1).apply(lambda x: x.apply(dfjoin, axis=1)) # merge together columns that have the same name, e.g. gene names with gene names and protein names with protein names
       # print(unifiedNamesDF)
-      
 
-      
       namedDF = pd.merge(unifiedNamesDF, resDF.iloc[:,2:], how='outer', left_index=True, right_index=True) # merge the actual samples with the data from the previous samples
       mergedDF = pd.merge(namedDF, outDF.iloc[:,2:], how='outer', left_index=True, right_index=True)
       mergedDF.fillna(0, inplace = True) # fill NaN values with zeros 
       resDF = mergedDF
-      
-       
+
       colNames = resDF.columns.tolist() # rearrange column names to make it moar pretty
       
       rearrangedCols = colNames[:2]
@@ -371,81 +374,72 @@ def file_combiner():
           
       resDF = resDF[rearrangedCols]
       
-
-      
     else: # true for first loop only
       resDF = outDF
 
-
-
-  print(resDF)
+  # print(resDF)
   
   # the dataframe is assembled and properly formatted at this point. now for the stats
   
+#   Pandas(Index='Q9CPX6', _1='Atg3', _2='Ubiquitin-like-conjugating enzyme ATG3', _3='2', _4='2', _5=0, _6=0, _7='2', _8='2', _9=0, _10=0, _11='10039000', _12='26676000', _13=0, _14=0)
+#   Pandas(Index='Q9CPY7', _1='Lap3', _2='Cytosol aminopeptidase', _3='3', _4='3', _5='5', _6='5', _7='3', _8='3', _9='5', _10='5', _11='34967000', _12='22258000', _13='92727000', _14='95797000')
+#   Pandas(Index='Q9CQ10', _1='Chmp3', _2='Charged multivesicular body protein 3', _3='1', _4='1', _5='5', _6='5', _7='1', _8='1', _9='5', _10='5', _11='4970000', _12='1681700', _13='79799000', _14='69307000')
+  
+  # print(groupDict)
+  groupNumDict = defaultdict(list)
+  
+  for groupName in groupDict:
+    for sampleName in groupDict[groupName]:
+      if groupName in groupNumDict:
+        groupNumDict[groupName].append(resDF.columns.get_loc("LFQ intensity " + sampleName) + 1)
+      else: groupNumDict[groupName] = [resDF.columns.get_loc("LFQ intensity " + sampleName) + 1]
+  
+  # print(groupNumDict)
+  
+  l = 0
+
+  finDF = resDF.copy()
+  finDF["P value"] = 0.0
+  finDF["Log2 Fold change"] = 0.0
   
   for rowSeries in resDF.itertuples():
-    print(rowSeries)
-
-
-
-         
-       
-#       outN = 0  
-#       # prepare header for file:
-#       headList = headerLine.strip("\n\r").split("\t")
-#       if fileCount > 1:
-#         for headerItem in headList[:-1]:
-#           headerI = headerItem.replace(",",".")
-#           headerCount = 1
-#           while headerCount < fileCount:
-#             outF.write(headerI + "-" + str(headerCount) + "|")
-#             headerCount += 1  
-#           outF.write(headerI + "-" + str(headerCount) + "\t")
-#            
-#         headerCount = 1
-#         while headerCount < fileCount:
-#           outF.write(headList[-1] + "-" + str(headerCount) + "|")
-#           headerCount += 1
-#          
-#         outF.write(headList[-1] + "-" + str(headerCount) + "\n")
-#      
-#       elif fileCount == 1:
-#         for headerItem in headList[:-1]:
-#           headerI = headerItem.replace(",",".")    
-#           outF.write(headerI + "\t")
-#         outF.write(headList[-1].replace(",",".") + "\n")
-#        
-#       else:
-#         print "number of input files should be at least one. Got less somehow"
-#         raise ValueError
-#     
-#   
-#   for outDK, outDV in finDict.items(): # write out assembled results to a file
-#     outN += 1
-#     if len(outDK) > 30: print "this line should not be displayed"
-#     # print outDV[1]
-#     # if outN == 100: break
-#     nameCount = 0
-#     for outI in outDV:
-#       # if nameCount == 0: print outI
-#       for outPiece in outI[:-1]:
-#         outU = outPiece.replace(",",".")
-#         if outU == "": outF.write("_|")
-#         else: outF.write(str(outU) + "|")
-#       if outI[-1] == "": # handle missing entries
-#         if nameCount == 6: outF.write(outDV[0][0] + "\t") # replace missing gene names with their uniprot ID
-#         else: outF.write("_\t")
-#       else: outF.write(str(outI[-1]).replace(",",".") + "\t")
-#       nameCount += 1
-#     outF.write("\n")
-#   
-# 
-#   print "unique proteins: ", outN
-#   print "lines parsed: ", cN
-#   # print headerLine
-#   inpF.close()
-#   outF.close()
+    l += 1
+    tTestD = defaultdict(list)
+    for groupKey in groupNumDict:
+      for groupI in groupNumDict[groupKey]:
+        curValue = int(rowSeries[groupI])
+        if groupKey in tTestD: tTestD[groupKey].append(curValue)
+        else: tTestD[groupKey] = [curValue]
   
+#     if l%100 == 0:
+#       print(rowSeries)
+
+    pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], equal_var = False)[1]) # calculate p value using t test here
+    if isnan(pValueNum): pValueNum = 1
+    
+    fCBoundMin = 1/1024  # calculate fold change
+    fCBoundMax = 1024
+    
+    if sum(tTestD["Group2"]) == 0:
+      if sum(tTestD["Group1"]) > 0: fCNum = fCBoundMax
+      else: fCNum = 1
+    elif sum(tTestD["Group1"]) == 0: fCNum = fCBoundMin
+    else: fCNum = sum(tTestD["Group1"])/sum(tTestD["Group2"])
+    
+    if fCNum > fCBoundMax: fCNum = fCBoundMax
+    elif fCNum < fCBoundMin: fCNum = fCBoundMin
+    
+    fCNum = log2(fCNum)
+    
+    finDF.at[rowSeries.Index,"P value"] = pValueNum # add fold change and P value to dataframe
+    finDF.at[rowSeries.Index,"Log2 Fold change"] = fCNum
+    
+  print("")
+  print(finDF)
+  
+  finDF.to_csv(outF)
+  
+  # dataframe written out to a file at this point
 
     
 def file_picker(cfgS):
