@@ -44,8 +44,8 @@ cfg file layout:
 
 def main():
   # print("call a function here to start")
-  #file_analyzer()
-  file_combiner()
+  file_analyzer()
+  # file_combiner()
   
   
 
@@ -88,6 +88,19 @@ def file_analyzer():
   for fileI in file_picker("proteingroups_analyzer_params.cfg"):
     column_finder(fileI)
     fileCount += 1
+    
+  print("\nsample names written to config file. Please arrange them into groups to continue the analysis")
+
+def volcano_plot_for_analyzer(dFrame):
+  """take a dataframe produced by proteingroups analyzer and plot a scatterplot with log2 fold change vs p value AKA a volcano plot"""
+  
+  import matplotlib.pyplot as plt
+  
+  plt.scatter(dFrame["Log2 Fold change"],dFrame["P value"], marker = ".", color = "black")
+  plt.axis([-10.5, 10.5, 1.05, -0.05])
+  
+
+  plt.show()
 
 def file_combiner():
   """take all the files from the cfg file and combine them to a single file. 
@@ -202,7 +215,7 @@ def file_combiner():
   
   groupNumD = {}
   for k in groupList:
-    groupNum = int(k.split("-")[1])
+    groupNum = int(k.split("-")[-1])
     if groupNum not in groupNumD: groupNumD[groupNum] = 1
     else: groupNumD[groupNum] += 1
   
@@ -431,13 +444,17 @@ def file_combiner():
     
     fCNum = log2(fCNum)
     
-    finDF.at[rowSeries.Index,"P value"] = pValueNum # add fold change and P value to dataframe
-    finDF.at[rowSeries.Index,"Log2 Fold change"] = fCNum
+    finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
+    finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
     
   print("")
   print(finDF)
-  
+
   finDF.to_csv(outF)
+  
+  volcano_plot_for_analyzer(finDF)
+  
+
   
   # dataframe written out to a file at this point
 
