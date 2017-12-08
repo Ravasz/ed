@@ -44,8 +44,9 @@ cfg file layout:
 
 def main():
   # print("call a function here to start")
-  file_analyzer()
-  # file_combiner()
+  # file_analyzer()
+  file_combiner()
+  # crapome_parser("proteinGroups_r619w_23-11-2017_combined-log22017-11-30-12.csv", "1511554731946_gp_crapome_24-11-2017.txt")
   
   
 
@@ -91,16 +92,54 @@ def file_analyzer():
     
   print("\nsample names written to config file. Please arrange them into groups to continue the analysis")
 
-def volcano_plot_for_analyzer(dFrame):
+def volcano_plot_for_analyzer(xValues,yValues,outFolder):
   """take a dataframe produced by proteingroups analyzer and plot a scatterplot with log2 fold change vs p value AKA a volcano plot"""
   
   import matplotlib.pyplot as plt
+  import os
+  from math import log2
   
-  plt.scatter(dFrame["Log2 Fold change"],dFrame["P value"], marker = ".", color = "black")
-  plt.axis([-10.5, 10.5, 1.05, -0.05])
+  outFigName = "volcano"
   
+  # currFignum = max(plt.get_fignums()) + 1
+  
+  plt.figure()
+  plt.scatter(xValues,yValues, marker = ".", c= (-1)*xValues, cmap=plt.get_cmap('Spectral'), vmin = -1, vmax = 1) # color = "black")
+  plt.axis([-5.5, 5.5, -0.05, 2.05])
+  
+  i = 1
+  while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
+      i += 1
+  plt.savefig(os.path.join(outFolder, (outFigName + str(i) + ".png")))
+  
+  plt.show(block = False)
 
-  plt.show()
+def histogram_plotter(valueDist,outFolder):
+  """create and save a histogram plot. To be called by protein groups analyzer to draw P value distribution plots"""
+  
+  import matplotlib.pyplot as plt
+  import os
+  
+  outFigName = ""#"P_value_dist"
+    
+  plt.figure()
+  ax = plt.subplot(111)
+  ax.spines['right'].set_visible(False)
+  ax.spines['top'].set_visible(False)
+  # plt.tick_params(top='off', right='off')
+#   ax.spines['top'].set_visible(False)
+#   ax.spines['right'].set_visible(False)
+  plt.hist(valueDist, bins = 30,  rwidth=0.95)
+  # plt.xlim(0,1)
+  
+  i = 1
+  while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
+      i += 1
+  plt.savefig(os.path.join(outFolder, (outFigName + str(i) + ".png")))
+  
+  plt.show(block = False)
+  
+  
 
 def file_combiner():
   """take all the files from the cfg file and combine them to a single file. 
@@ -113,8 +152,10 @@ def file_combiner():
   import sys, os.path
   import pandas as pd
   import scipy.stats
+  from time import strftime
   from math import isnan,log2
   from collections import defaultdict
+  import numpy as np
   
   pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
   
@@ -131,6 +172,7 @@ def file_combiner():
   groupList = []
   groupDict = defaultdict(list)
   resDF = pd.DataFrame()
+  dateStr = strftime('%Y-%m-%d')
   
   with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
 
@@ -235,7 +277,6 @@ def file_combiner():
   
   # by this point everything is collected from the cfg file that we need      
   
-  outF = open(os.path.join(outputFolder, "combined.csv"),"w")
   dataCounter = 0
   fileCount = 0
   colNums = []
@@ -292,19 +333,21 @@ def file_combiner():
             curGene = geneI
         if "__" in curGene: continue # get rid of contaminant lines
         corrGeneN = geneL.index(curGene)
-
  
         if curGene[-2] == "-":
           curGene = curGene[:-2]
         elif curGene[-3] == "-":
           curGene = curGene[:-3]
-        
+
         workingL = []  
         for neededN in neededColIndexes:
           workingL.append(inpItem[neededN])
         
         # print(workingL)
-        if workingL[1] == "": workingL[1] = " ".join(inpItem[7].split("|")[2].split("OS")[0].split(" ")[1:])  # add fasta header if full protein name is missing with this lovely one-liner
+        try:
+          if workingL[1] == "": workingL[1] = " ".join(inpItem[7].split("|")[2].split("OS")[0].split(" ")[1:])  # add fasta header if full protein name is missing with this lovely one-liner
+        except IndexError: # if fasta header is missing too, then just skip this
+          pass
         
         uniqueL = []
         for workingI in workingL[:3]: # remove ambiguities 
@@ -385,7 +428,8 @@ def file_combiner():
         if "LFQ intensity " in colItem:
           rearrangedCols.append(colItem)     
           
-      resDF = resDF[rearrangedCols]
+      resDF = resDF[rearrangedCols] #.astype(float)
+      
       
     else: # true for first loop only
       resDF = outDF
@@ -393,6 +437,41 @@ def file_combiner():
   # print(resDF)
   
   # the dataframe is assembled and properly formatted at this point. now for the stats
+  
+  # normalization:
+  # so I found that there is more Ptpn22 in the wt sample than the mutant, doing the normalization here for all proteins
+  
+  # resDF.apply(pd.to_numeric, errors = "ignore") -> this does not seem to do much
+
+# the next 6 lines here are the normalizations based on ptpn22 yields in the r619w dataset
+#   resDF["LFQ intensity -OST-1-1"] = resDF["LFQ intensity -OST-1-1"].astype(float)/1
+#   resDF["LFQ intensity -OST-2-1"] = resDF["LFQ intensity -OST-2-1"].astype(float)/1.251
+#   resDF["LFQ intensity -OST-3-1"] = resDF["LFQ intensity -OST-3-1"].astype(float)/1.593
+#   
+#   resDF["LFQ intensity R-619W-1-1"] = resDF["LFQ intensity R-619W-1-1"].astype(float)/0.803
+#   resDF["LFQ intensity -R619W-2-1"] = resDF["LFQ intensity -R619W-2-1"].astype(float)/0.962
+#   resDF["LFQ intensity -R619W-3-1"] = resDF["LFQ intensity -R619W-3-1"].astype(float)/0.424 # .apply(lambda x:x*1.76)
+  
+#   resDF["LFQ intensity R-619W-1-1"] = resDF["LFQ intensity R-619W-1-1"].replace(0,1)
+#   resDF["LFQ intensity R-619W-1-1"] = np.log2(resDF["LFQ intensity R-619W-1-1"])
+# 
+#   resDF["LFQ intensity -R619W-2-1"] = resDF["LFQ intensity -R619W-2-1"].replace(0,1)
+#   resDF["LFQ intensity -R619W-2-1"] = np.log2(resDF["LFQ intensity -R619W-2-1"])  
+# 
+#   resDF["LFQ intensity -R619W-3-1"] = resDF["LFQ intensity -R619W-3-1"].replace(0,1)
+#   resDF["LFQ intensity -R619W-3-1"] = np.log2(resDF["LFQ intensity -R619W-3-1"])
+# 
+# 
+#   resDF["LFQ intensity -OST-1-1"] = resDF["LFQ intensity -OST-1-1"].astype(float).replace(0,1)
+#   resDF["LFQ intensity -OST-1-1"] = np.log2(resDF["LFQ intensity -OST-1-1"])
+# 
+#   resDF["LFQ intensity -OST-2-1"] = resDF["LFQ intensity -OST-2-1"].astype(float).replace(0,1)
+#   resDF["LFQ intensity -OST-2-1"] = np.log2(resDF["LFQ intensity -OST-2-1"])
+# 
+#   resDF["LFQ intensity -OST-3-1"] = resDF["LFQ intensity -OST-3-1"].astype(float).replace(0,1)
+#   resDF["LFQ intensity -OST-3-1"] = np.log2(resDF["LFQ intensity -OST-3-1"])
+
+  
   
 #   Pandas(Index='Q9CPX6', _1='Atg3', _2='Ubiquitin-like-conjugating enzyme ATG3', _3='2', _4='2', _5=0, _6=0, _7='2', _8='2', _9=0, _10=0, _11='10039000', _12='26676000', _13=0, _14=0)
 #   Pandas(Index='Q9CPY7', _1='Lap3', _2='Cytosol aminopeptidase', _3='3', _4='3', _5='5', _6='5', _7='3', _8='3', _9='5', _10='5', _11='34967000', _12='22258000', _13='92727000', _14='95797000')
@@ -409,35 +488,83 @@ def file_combiner():
   
   # print(groupNumDict)
   
-  l = 0
+  # l = 0
 
   finDF = resDF.copy()
   finDF["P value"] = 0.0
   finDF["Log2 Fold change"] = 0.0
   
+  protNameList = []
+  protNameDouble = []
+  duplicateCount = 0
+  dupD = {}
+  
   for rowSeries in resDF.itertuples():
-    l += 1
+    # l += 1
     tTestD = defaultdict(list)
+    curLFQ = sum(list(map(float, rowSeries[(-1)*len(groupList):]))) 
+    curMaxPep = max(list(map(float, rowSeries[2*(-1)*len(groupList):(-1)*len(groupList)]))) 
+    
+    if rowSeries[2].upper() in protNameList:
+      protNameDouble.append(rowSeries[2].upper())
+      duplicateCount += 1
+      if curLFQ < dupD[rowSeries[2].upper()][1]: 
+        try:
+          finDF.drop(rowSeries.Index, inplace=True)
+        except ValueError:
+          # print(rowSeries[2])
+          pass
+      else: 
+        try:
+          finDF.drop(dupD[rowSeries[2].upper()][0], inplace=True)
+        except ValueError:
+          # print(rowSeries[2])
+          pass
+      
+    else: 
+      protNameList.append(rowSeries[2].upper())
+      dupD[rowSeries[2].upper()] = [rowSeries.Index,curLFQ]
+      
+    if curMaxPep < 2:
+      try: finDF.drop(rowSeries.Index, inplace=True)
+      except ValueError:
+        # print(rowSeries[2])
+        # this is just to catch rows deleted by the duplication finder which are also not passing the unique peptides criteria
+        pass
+    
     for groupKey in groupNumDict:
       for groupI in groupNumDict[groupKey]:
-        curValue = int(rowSeries[groupI])
+        try:
+          curValue = int(round(float(rowSeries[groupI]),0))
+        except ValueError:
+          print(groupI)
+          print(rowSeries)
+          raise
         if groupKey in tTestD: tTestD[groupKey].append(curValue)
         else: tTestD[groupKey] = [curValue]
   
 #     if l%100 == 0:
 #       print(rowSeries)
-
+    
     pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], equal_var = False)[1]) # calculate p value using t test here
     if isnan(pValueNum): pValueNum = 1
+    if pValueNum < 0.01: pValueNum = 0.01
     
-    fCBoundMin = 1/1024  # calculate fold change
-    fCBoundMax = 1024
+    fCBoundMin = 1/32  # calculate fold change
+    fCBoundMax = 32
     
     if sum(tTestD["Group2"]) == 0:
       if sum(tTestD["Group1"]) > 0: fCNum = fCBoundMax
       else: fCNum = 1
     elif sum(tTestD["Group1"]) == 0: fCNum = fCBoundMin
-    else: fCNum = sum(tTestD["Group1"])/sum(tTestD["Group2"])
+    else: 
+      fCDict = {"Group1":[],"Group2":[]}
+      for tTestI in tTestD["Group1"]:
+        if tTestI > 0: fCDict["Group1"].append(tTestI)
+      for tTestI in tTestD["Group2"]:
+        if tTestI > 0: fCDict["Group2"].append(tTestI)      
+      
+      fCNum = sum(fCDict["Group1"])/sum(fCDict["Group2"])
     
     if fCNum > fCBoundMax: fCNum = fCBoundMax
     elif fCNum < fCBoundMin: fCNum = fCBoundMin
@@ -447,16 +574,56 @@ def file_combiner():
     finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
     finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
     
+  finDF.dropna(axis=0, how='any', inplace=True)
+  
   print("")
   print(finDF)
+  print("\nduplicates removed (should be zero): " + str(duplicateCount))
+  
+  # outF = open(os.path.join(outputFolder, ".".join(inpFileList[0].split(".")[:-1]) + "_combined-" + dateStr + ".csv"),"w")
+  
+  i = 1
+  while os.path.exists(os.path.join(outputFolder, ".".join(inpFileList[0].split(".")[:-1]) + "_combined-log2" + dateStr +  "-" + str(i) + ".csv")):
+      i += 1
+  finDF.to_csv(os.path.join(outputFolder, ".".join(inpFileList[0].split(".")[:-1]) + "_combined-log2" + dateStr +  "-" + str(i) + ".csv"))
 
-  finDF.to_csv(outF)
-  
-  volcano_plot_for_analyzer(finDF)
-  
-
-  
   # dataframe written out to a file at this point
+  
+  for dupItem in protNameDouble:
+    print(dupItem)
+  
+  finDF["P value"] = finDF["P value"].replace(0,0.000001)
+  finDF["P value"] = np.log10(finDF["P value"])*(-1)
+  
+  volcano_plot_for_analyzer(finDF["Log2 Fold change"],finDF["P value"],outputFolder)
+#   histogram_plotter(finDF["P value"], outputFolder)
+
+
+  
+#   finDF["LFQ intensity R-619W-1-1"] = finDF["LFQ intensity R-619W-1-1"].replace(0,1)
+#   finDF["LFQ intensity R-619W-1-1"] = np.log2(finDF["LFQ intensity R-619W-1-1"])
+#   histogram_plotter(finDF["LFQ intensity R-619W-1-1"], outputFolder) 
+#   finDF["LFQ intensity -R619W-2-1"] = finDF["LFQ intensity -R619W-2-1"].replace(0,1)
+#   finDF["LFQ intensity -R619W-2-1"] = np.log2(finDF["LFQ intensity -R619W-2-1"])  
+#   histogram_plotter(finDF["LFQ intensity -R619W-2-1"], outputFolder)
+#   finDF["LFQ intensity -R619W-3-1"] = finDF["LFQ intensity -R619W-3-1"].replace(0,1)
+#   finDF["LFQ intensity -R619W-3-1"] = np.log2(finDF["LFQ intensity -R619W-3-1"])
+#   histogram_plotter(finDF["LFQ intensity -R619W-3-1"], outputFolder)
+# 
+#   finDF["LFQ intensity -OST-1-1"] = finDF["LFQ intensity -OST-1-1"].astype(float).replace(0,1)
+#   finDF["LFQ intensity -OST-1-1"] = np.log2(finDF["LFQ intensity -OST-1-1"])
+#   histogram_plotter(finDF["LFQ intensity -OST-1-1"], outputFolder) 
+#   finDF["LFQ intensity -OST-2-1"] = finDF["LFQ intensity -OST-2-1"].astype(float).replace(0,1)
+#   finDF["LFQ intensity -OST-2-1"] = np.log2(finDF["LFQ intensity -OST-2-1"])
+#   histogram_plotter(finDF["LFQ intensity -OST-2-1"], outputFolder) 
+#   finDF["LFQ intensity -OST-3-1"] = finDF["LFQ intensity -OST-3-1"].astype(float).replace(0,1)
+#   finDF["LFQ intensity -OST-3-1"] = np.log2(finDF["LFQ intensity -OST-3-1"])
+#   histogram_plotter(finDF["LFQ intensity -OST-3-1"], outputFolder) 
+#   histogram_plotter(finDF["LFQ intensity -R619W-3-1"], outputFolder) 
+#   histogram_plotter(finDF["LFQ intensity -OST-1-1"], outputFolder)
+#   histogram_plotter(finDF["LFQ intensity -OST-2-1"], outputFolder)
+#  histogram_plotter(finDF["LFQ intensity -OST-3-1"], outputFolder)
+
 
     
 def file_picker(cfgS):
@@ -1433,17 +1600,33 @@ def entry_parser():
   inpF.close()
   outF.close()
   
-def crapome_parser():
+def crapome_parser(protFileName, crapFileName):
   """take crapome 1.1 tab delimited file as input and add it to the output of the lfq_parser method in proteingroups_parser.py.
   proteins not present in the database shall also be included."""
   import os.path
+  import pandas as pd
+  pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
   
   # contTreshold = 30 # set this to the desired contamination score
   resD = {}
+  outputFolder = ""
+  
+  with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
+
+    for cfgLine in cfgFile:
+      if cfgLine == "<Outputfolder>\n": # collect output folder here
+        lineCount = 0
+        while True:
+          newLine = next(cfgFile)
+          lineCount += 1
+          if newLine == "\n": continue
+          else: 
+            outputFolder = newLine.rstrip("\n")
+            break
   
   # crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
-  crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "Crapome-OT1-upregulated.txt"),"rU")
-  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "Crapome-OT1-upregulated_parsed.txt"),"w")
+  crapFile = open(os.path.join(outputFolder, crapFileName),"rU")
+  outF = open(os.path.join(outputFolder, ".".join(crapFileName.split(".")[:-1]) + "_processed_log2." + crapFileName.split(".")[-1]),"w")
   
   headerFlag = True
   
@@ -1451,7 +1634,7 @@ def crapome_parser():
   for inpLine in crapFile: # parse crapome output file
     if headerFlag:
       headerFlag = False
-      outF.write("protName\tscore\n")
+      outF.write("protName\tCrapome_score\n")
       continue
     fileLength += 1
     lineList = inpLine.split("\t")
@@ -1459,7 +1642,7 @@ def crapome_parser():
     elif len(lineList) > 2: contScore = int(lineList[2].split("/")[0])
     else: contScore = 0
     
-    outF.write(lineList[1]+"\t"+ str(contScore) + "\n")
+    outF.write(lineList[0]+"\t"+ str(contScore) + "\n")
     
     # if contScore < contTreshold:
     resD[lineList[0]] = contScore
@@ -1469,24 +1652,45 @@ def crapome_parser():
   print("lines parsed: " + str(fileLength))
   print("Number of results: " + str(len(resD)))
   
+  crapFile.close()
+  outF.close()
       
-#   inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
-#   outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
-#   
-#   headerFlag = True
-#   for inpLine in inpFile: # parse the input file for crapome and add crapome results to it
-#     inpList = inpLine.rstrip("\n").split(",")
-#     for inpI in inpList:
-#       outF.write(inpI + ",")
-#     
-#     if headerFlag: 
-#       outF.write("Crapome score")
-#       headerFlag = False
-#     elif inpList[2].upper() in resD: outF.write(str(resD[inpList[2].upper()]))
-#     else: outF.write("0")
-#     
-#     outF.write("\n")
-#   print "results written to file"
+  #inpFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0.csv"),"r")
+  #outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "cav1ko-1_no0_crapome.csv"),"w")
+  outF = os.path.join(outputFolder,".".join(protFileName.split(".")[:-1]) + "-crapome_log2." + protFileName.split(".")[-1])
+  protDF = pd.read_csv(os.path.join(outputFolder,protFileName), header = 0)
+  crapDF = pd.read_csv(os.path.join(outputFolder, ".".join(crapFileName.split(".")[:-1]) + "_processed_log2." + crapFileName.split(".")[-1]), sep="\t", header = 0)
+  
+  protDF["Gene names"] = protDF["Gene names"].map(lambda x: x.upper())
+  print(protDF)
+  
+  
+  # mergedDF = pd.merge(protDF, crapDF, how='outer', left_index=True, right_index=True)
+  
+  combinedDF = pd.concat([protDF.set_index('Gene names'),crapDF.set_index('protName')], axis=1, join='outer')
+  combinedDF["Protein names"].fillna("", inplace = True)
+  combinedDF["Crapome_score"].fillna(0, inplace = True)
+  print(combinedDF)
+  combinedDF["Gene names"] = combinedDF.index
+  
+  colNames = combinedDF.columns.tolist() # rearrange column names to make it moar pretty
+      
+  rearrangedCols = colNames[:2]
+  rearrangedCols.append("Gene names")
+  rearrangedCols.extend(colNames[2:-1])
+  
+  
+  combinedDF = combinedDF[rearrangedCols]
+  combinedDF["Gene names"] = combinedDF["Gene names"].map(lambda x: x.title())
+  
+  combinedDF.set_index("Majority protein IDs", inplace = True)
+  
+  print(combinedDF)
+  
+  combinedDF.to_csv(outF)
+  
+
+  print("results written to file")
 
   
 if __name__ == "__main__":

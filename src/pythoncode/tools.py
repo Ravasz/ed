@@ -12,7 +12,7 @@ def main():
   
   # print prot_id_converter(testL, inpDB = "refseqproteinaccession", outDB = "genesymbol", orgnID="9606")  
   
-  # intact_parser()
+  intact_parser()
 
 
 def file_reader(fileStr,resType="dict"):
@@ -242,7 +242,8 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   uParsed = urllib.request.urlopen(urlStr)  
   print("connection successful")
   responseJson = uParsed.read()
-  parsedJson = json.loads(responseJson)
+  print(responseJson)
+  parsedJson = json.loads(responseJson.decode('utf-8'))
   # print parsedJson
   # parsedJson = [{u'Gene ID': u'54196', u'InputValue': u'Q8CCS6'}, {u'Gene ID': u'99982', u'InputValue': u'Q6ZQ88'}]
   # parsedJson = [{u'GenBank Protein Accession': u'BAC27741//Q8CCS6//EDL36322//AAH55866//NP_062275//XP_006519335//AAC00210////EDL36323', u'InputValue': u'Q8CCS6'}, {u'GenBank Protein Accession': u'AAH19417//XP_006539394//XP_006539393//NP_598633//AAH59885//CBY79415//CBY88367////XP_006539392//EDL29935//Q6ZQ88//BAC97980', u'InputValue': u'Q6ZQ88'}]
@@ -466,6 +467,7 @@ def html_creator(titleS = "test HTML", bodyS = "test content", outpuFN = "test.h
     outF.write(r"<html>" + "\n")
     outF.write(r"<head>" + "\n")
     outF.write(r"""<style>
+mark {background-color: lightgreen;color: black;}
 p.monospace {
     font-family: "Courier New", Courier, monospace; line-height: 110%;
 }
@@ -486,7 +488,7 @@ p.monospace {
       if breakFlag: counterN += 1
       if itemS == ">": breakFlag = True
       
-      if counterN % 100 == 0: needBreak = True        
+      if counterN % 51 == 0: needBreak = True        
       if needBreak and breakFlag:
         outF.write(r"<br>")
         needBreak = False
@@ -571,11 +573,17 @@ def intact_parser():
   - handle different organisms too using the taxids
   """
   
+  import os.path
+  
   baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
   
   # relPath = "ptpn22_ppi_data/ptpn22.txt"
-  relPath = "datafiles/ptpn22_interactions_intact.txt"
-  inpF = file_importer(relPath, "r")
+  #relPath = "datafiles/ptpn22_interactions_intact.txt"
+  #inpF = file_importer(relPath, "r")
+  
+  inFolder = "/home/mate/code/ed/src/data/"
+  
+  inpF = open(os.path.join(inFolder, "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
   headerFlag = True
   preyL = []
   nfCount = 0
@@ -666,6 +674,31 @@ def intact_parser():
       
   
   print(preyL)
+  for preyI in preyL:
+    print(preyI)
+    
+  biogInp = open(os.path.join(inFolder, "biorgid-ptpn22-interactors-08082017.txt"),"r")
+  biogList = []
+  for bioLine in biogInp:
+    # print(bioLine.upper())
+    if bioLine.upper().rstrip() not in biogList:
+      # print(biogList)
+      biogList.append(bioLine.rstrip().upper())
+  biogInp.close()
+  
+  outF = open(os.path.join(inFolder, "ptpn22-interactors-biogrid-intact-28-11-2017.txt"),"w")
+  
+  for biogI in biogList:
+    #print(repr(biogI))
+    outF.write(biogI + "\n")
+  
+  for preyI in preyL:
+    #print(repr(preyI))
+    if preyI not in biogList:
+      outF.write(preyI + "\n")
+  
+  
+  
   # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
   # return idList
       

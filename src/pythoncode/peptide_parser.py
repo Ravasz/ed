@@ -16,11 +16,11 @@ def main():
   from copy import deepcopy
   print("this is peptide parser")
   
-  queryS = "Eif5a" # this is the search term that will be worked on. It should be a protein name like "Ptpn22"
+  queryS = "Ptpn22" # this is the search term that will be worked on. It should be a protein name like "Ptpn22"
   
   
   print("working on: " + queryS)
-  with open("../bob/peptides.txt","r") as inpF: 
+  with open("/home/mate/code/ed/src/data/r619w/txt/peptides.txt","r") as inpF: 
     pepL, uniId = peptide_finder(targetFile=inpF, targetS = queryS) # find peptides from peptides.txt for the protein name
   print(pepL)
   print("peptides found")
@@ -76,12 +76,12 @@ def main():
      
   print(uniId)
   phL = []
-  with open("../datafiles/Phosphorylation_site_dataset") as phInp: # now for the phosphosite data
+  with open("/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt") as phInp: # now for the phosphosite data
     for phLine in phInp:
       phList = phLine.split("\t")
       try:
-        if uniId == phList[1]: 
-          phL.append(int(phList[4][1:-2]) - 1)
+        if uniId == phList[0]: 
+          phL.append(int(phList[1].split(";")[0]) - 1)
       except IndexError:
         continue
   print(phL)
@@ -124,7 +124,8 @@ def peptide_finder(targetFile, targetS = "Ptpn22"):
       headerFlag = False
       continue
     lineL = lineS.split("\t")
-    geneNames = lineL[37].split(";")
+    # print(lineL)
+    geneNames = lineL[38].split(";")
     if geneNames[0] == "": continue
     if geneNames[0] == targetS:
       if lineL[0] not in peptideL:
