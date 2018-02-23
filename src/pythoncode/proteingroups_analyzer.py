@@ -22,8 +22,8 @@ cfg file name: proteingroups_analyzer_params.cfg
 def main():
   print("call a function here to start")
   # file_analyzer()
-  # file_combiner()
-  crapome_parser("proteinGroups_Sara_exp2_21-11-2017_Sara_id8_neg_vs_ctrl_combined_2017-12-15-2.csv", "1513022476592_Sara_D8_vs_IgG_15-12-2017.txt")
+  file_combiner()
+  # crapome_parser("proteinGroups_Sara_exp2_21-11-2017_Sara_id8_neg_vs_ctrl_combined_2017-12-15-2.csv", "1513022476592_Sara_D8_vs_IgG_15-12-2017.txt")
   
   
 
@@ -216,6 +216,7 @@ def file_combiner():
   pairedBool = False
   volcanoBool = False
   heatmapBool = False
+  zeroesBool = False
   
   with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
 
@@ -255,6 +256,7 @@ def file_combiner():
           elif newLine.startswith("Paired T test")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": pairedBool = True
           elif newLine.startswith("onlyAlwaysDetected")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": onlyAlwaysDetected = True
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
+          elif newLine.startswith("remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
         continue
       
       elif cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -546,7 +548,6 @@ def file_combiner():
         groupNumDict[groupName].append(resDF.columns.get_loc("LFQ intensity " + sampleName) + 1)
       else: groupNumDict[groupName] = [resDF.columns.get_loc("LFQ intensity " + sampleName) + 1]
   
-  # print(groupNumDict)
   
   # l = 0
 
@@ -557,7 +558,7 @@ def file_combiner():
   protNameList = []
   protNameDouble = []
   duplicateCount = 0
-  ndVal = 100000 # value to replace 0 LFQ values with
+  ndVal = 100000 # value to replace 0 LFQ values with in case zero_remover isn't used
   vennD = defaultdict(dict)
   dupD = {}
   
@@ -567,7 +568,7 @@ def file_combiner():
     tTestD = defaultdict(list)
     fCD = defaultdict(list)
     curLFQ = sum(list(map(float, rowSeries[(-1)*len(groupList):]))) # sum all lfq values for this line and store it as an indicator of protein abundance
-    curMaxPep = max(list(map(float, rowSeries[2*(-1)*len(groupList):(-1)*len(groupList)])))  # find the largest unique peptdie count for this row in all samples
+    curMaxPep = max(list(map(float, rowSeries[2*(-1)*len(groupList):(-1)*len(groupList)])))  # find the largest unique peptide count for this row in all samples
     curRowKey = rowSeries.Index.upper()
     
     if curRowKey in protNameList:
@@ -610,6 +611,11 @@ def file_combiner():
         pass
       continue
     
+    # remove zeroes comes here #
+    
+    if zeroesBool: rowSeries = zero_remover(rowSeries,groupNumDict)
+    
+    
     for groupKey in groupNumDict:
       for groupI in groupNumDict[groupKey]:
         try:
@@ -620,7 +626,7 @@ def file_combiner():
           print(rowSeries)
           raise
         
-        if curValueT == 0: curValueT = ndVal# 90000 + randint(0,20000) # 100000 is a good value to set for non detected proteins for t testing
+        if curValueT == 0: curValueT = ndVal # 90000 + randint(0,20000) # 100000 is a good value to set for non detected proteins for t testing
         
         elif vennBool and not isnan(curValueT): # build nested dict with gene names for venn diagram generation.
           colNameS = resDF.columns[groupI-1].split(" intensity ")[1]
@@ -748,6 +754,50 @@ def file_combiner():
     histogram_plotter(finDF["LFQ intensity -OST-3-1"], outputFolder) 
 
 
+
+def zero_remover(rowWithZeroes, posDict):
+  """remove zeroes from dataset by using dodgy calculations.
+  1) out of 3 replicates if all 3 are present, then do nothing.
+  2) if two are present and one is zero, then replace the zero with the average of the other two measurements
+  3) if only one is present and the other two are zeroes:
+    3a) if the matching control or sample has one or zero measurements, then remove the whole protein from the list
+    3b) if the matching control or sample has two measurements, then generate a third measurement in the other sample based on rule 2. 
+        Then generate two other measurements for this sample by taking the half of the single measurement, and 2x its amount.
+    3c) if the matching control or sample has three measurements, then generate two other measurements for this sample by taking the half of the single measurement, and 2x its amount.
+  4) if all three measurements are zero:
+    4a) if the matching control or sample has one or zero measurements, then remove the whole protein from the list
+    4b) if the matching control or sample has two measurements, then generate a third measurement in the other sample based on rule 2. 
+        Then, divide each of the 3 measurements in the other sample by 100 and use that as measurements for this sample.
+    4c) if the matching control or sample has three measurements, then divide each of the 3 measurements in the other sample by 100 and use that as measurements for this sample.
+  
+  all zeroes are gone!
+    
+  not finished yet
+  """
+  
+  from collections import defaultdict
+  
+  zeroDict = {}
+  for patchGroup in posDict:
+    for patchI in posDict[patchGroup]:
+      if patchGroup in zeroDict: zeroDict.append(int(round(float(rowWithZeroes[patchI]),0)))
+      else: zeroDict[patchGroup] = [int(round(float(rowWithZeroes[patchI]),0))]
+      
+  # built a dict with with groups as keys, and LFQ values as a list in each group as values
+  
+  repdict = defaultdict(list)
+  
+  for zeroGroup in zeroDict:
+    zeroCount = 0
+    for zeroI in zeroDict[zeroGroup]:
+      if zeroI == 0:
+        zeroCount += 1
+    
+    if zeroCount == 0: continue
+    elif len(zeroDict[zeroGroup]) > 1:
+      pass 
+      # finish this bit. take all nonzero values, average them, and replace the zero values with the average value
+    
     
 def file_picker(cfgS):
   """open files for analysis from proteingroups_analyzer_params.cfg in the same directory"""
