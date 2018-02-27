@@ -785,7 +785,11 @@ def zero_remover(rowWithZeroes, posDict):
       
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
   
-  repdict = defaultdict(list)
+  
+  repDict = defaultdict(list)
+  zeroCountDict = {}
+  
+  # this is where the zeroes are told to vanish
   
   for zeroGroup in zeroDict:
     zeroCount = 0
@@ -793,10 +797,36 @@ def zero_remover(rowWithZeroes, posDict):
       if zeroI == 0:
         zeroCount += 1
     
-    if zeroCount == 0: continue
-    elif len(zeroDict[zeroGroup]) > 1:
-      pass 
-      # finish this bit. take all nonzero values, average them, and replace the zero values with the average value
+    zeroCountDict[zeroGroup] = zeroCount
+    
+  if zeroCount == 0:
+    repDict[zeroGroup] = zeroDict[zeroGroup]
+    continue
+  elif len(zeroDict[zeroGroup]) - zeroCount > 1:
+    # take all nonzero values, average them, and replace the zero values with the average value
+    sumZero = 0
+    for zeroJ in zeroDict[zeroGroup]:
+      if zeroJ != 0: sumZero += zeroJ
+    zeroAvg = int(round(sumZero/(len(zeroDict[zeroGroup]) - zeroCount),0))
+    for zeroK in zeroDict[zeroGroup]:
+      if zeroGroup not in repDict:
+        if zeroK == 0: repDict[zeroGroup] = [zeroAvg]
+        else: repDict[zeroGroup] = [zeroK]
+      else:
+        if zeroK == 0: repDict[zeroGroup].append(zeroAvg)
+        else: repDict[zeroGroup].append(zeroK)
+  
+  elif len(zeroDict[zeroGroup]) - zeroCount == 1:
+    # in this case, replacing depends on the other sample groups in the same line of the dataset - case 3 in documentation
+    pass
+  elif len(zeroDict[zeroGroup]) - zeroCount == 0:
+    # what to do if all numbers are zeroes - case 4 in documentation
+    
+    pass 
+    
+  else:
+    print("something terrible has happened. Zeroes could not be counted")
+    raise ValueError
     
     
 def file_picker(cfgS):
