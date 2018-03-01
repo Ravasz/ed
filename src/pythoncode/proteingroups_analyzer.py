@@ -789,7 +789,9 @@ def zero_remover(rowWithZeroes, posDict):
   repDict = defaultdict(list)
   zeroCountDict = {}
   
-  # this is where the zeroes are told to vanish
+
+  
+  # count how many zeroes there are in each group of the dataset
   
   for zeroGroup in zeroDict:
     zeroCount = 0
@@ -798,6 +800,10 @@ def zero_remover(rowWithZeroes, posDict):
         zeroCount += 1
     
     zeroCountDict[zeroGroup] = zeroCount
+    
+  # this is where the zeroes are told to vanish
+  
+  for 
     
   if zeroCount == 0:
     repDict[zeroGroup] = zeroDict[zeroGroup]
@@ -818,6 +824,11 @@ def zero_remover(rowWithZeroes, posDict):
   
   elif len(zeroDict[zeroGroup]) - zeroCount == 1:
     # in this case, replacing depends on the other sample groups in the same line of the dataset - case 3 in documentation
+    
+    for zeroCountI in zeroCountDict:
+      if len(zeroDict[zeroGroup]) - zeroCountDict[zeroCountI] > 1:
+        pass
+    
     pass
   elif len(zeroDict[zeroGroup]) - zeroCount == 0:
     # what to do if all numbers are zeroes - case 4 in documentation
