@@ -150,6 +150,8 @@ def histogram_plotter(valueDist,outFolder):
   
   import matplotlib.pyplot as plt
   import os
+  import numpy as np
+  from scipy.stats import norm
   
   outFigName = "P_value_dist"
   # print(valueDist)
@@ -163,7 +165,7 @@ def histogram_plotter(valueDist,outFolder):
 #   ax.spines['right'].set_visible(False)
   plt.hist(valueDist, bins = 30,  rwidth=0.93)
   # plt.xlim(0,1)
-  
+    
   i = 1
   while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
       i += 1
@@ -172,7 +174,37 @@ def histogram_plotter(valueDist,outFolder):
   plt.show(block = False)
   
   
+def histogram_plotter_with_normal(valueDist,outFolder):
+  """create and save a histogram plot while also plotting a hand-made normal distribution graph. To be called by protein groups analyzer to draw P value distribution plots"""
+  
+  import matplotlib.pyplot as plt
+  import os
+  import numpy as np
+  from scipy.stats import norm
+  
+  outFigName = "P_value_dist"
+  # print(valueDist)
+    
+  plt.figure()
+  ax = plt.subplot(111)
+  ax.spines['right'].set_visible(False)
+  ax.spines['top'].set_visible(False)
+  # plt.tick_params(top='off', right='off')
+#   ax.spines['top'].set_visible(False)
+#   ax.spines['right'].set_visible(False)
+  plt.hist(valueDist, bins = 30,  rwidth=0.93)
+  # plt.xlim(0,1)
 
+  x_axis = np.arange(14, 30, 0.01) # this range determines where exactly the line will be plotted
+  plt.plot(x_axis, norm.pdf(x_axis,21.5,2.2)*1230) # range, mean and SD 
+    
+  i = 1
+  while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
+      i += 1
+  plt.savefig(os.path.join(outFolder, (outFigName + str(i) + ".png")))
+  
+  plt.show(block = False)
+  
 def file_combiner():
   """take all the files from the cfg file and combine them to a single file. 
   Read in the next file line by line.
@@ -728,15 +760,15 @@ def file_combiner():
     pass
 
   if histBool:
-    finDF["LFQ intensity R-619W-1-1"] = finDF["LFQ intensity R-619W-1-1"].replace(0,1)
+    finDF["LFQ intensity R-619W-1-1"] = finDF["LFQ intensity R-619W-1-1"].astype(float).replace(0,1)
     finDF["LFQ intensity R-619W-1-1"] = np.log2(finDF["LFQ intensity R-619W-1-1"])
     histogram_plotter(finDF["LFQ intensity R-619W-1-1"], outputFolder) 
     
-    finDF["LFQ intensity -R619W-2-1"] = finDF["LFQ intensity -R619W-2-1"].replace(0,1)
+    finDF["LFQ intensity -R619W-2-1"] = finDF["LFQ intensity -R619W-2-1"].astype(float).replace(0,1)
     finDF["LFQ intensity -R619W-2-1"] = np.log2(finDF["LFQ intensity -R619W-2-1"])  
     histogram_plotter(finDF["LFQ intensity -R619W-2-1"], outputFolder)
     
-    finDF["LFQ intensity -R619W-3-1"] = finDF["LFQ intensity -R619W-3-1"].replace(0,1)
+    finDF["LFQ intensity -R619W-3-1"] = finDF["LFQ intensity -R619W-3-1"].astype(float).replace(0,1)
     finDF["LFQ intensity -R619W-3-1"] = np.log2(finDF["LFQ intensity -R619W-3-1"])
     histogram_plotter(finDF["LFQ intensity -R619W-3-1"], outputFolder)
     
@@ -757,6 +789,9 @@ def file_combiner():
 
 def zero_remover(rowWithZeroes, posDict):
   """remove zeroes from dataset by using dodgy calculations.
+  
+  original concept:
+  
   1) out of 3 replicates if all 3 are present, then do nothing.
   2) if two are present and one is zero, then replace the zero with the average of the other two measurements
   3) if only one is present and the other two are zeroes:
@@ -769,6 +804,28 @@ def zero_remover(rowWithZeroes, posDict):
     4b) if the matching control or sample has two measurements, then generate a third measurement in the other sample based on rule 2. 
         Then, divide each of the 3 measurements in the other sample by 100 and use that as measurements for this sample.
     4c) if the matching control or sample has three measurements, then divide each of the 3 measurements in the other sample by 100 and use that as measurements for this sample.
+    
+    
+  updated concept using basic imputation:
+  
+  A zero is missing completely at random (MCAR) if the remaining value (or the average of the values if more are present) are in the top 3 quartiles of the sample distribution. 
+  Else it is censored.
+  
+  1) out of 3 replicates if all 3 are present, then do nothing.
+  2) if two are present and one is zero, 
+    2a) if value is MCAR then replace the zero with the average of the other two measurements
+    2b) if value is censored then replace the zero with the lowest detected measurement in the group scaled down by multiplying it with 1/the ratio of the two existing measurements
+  3) if only one is present and the other two are zeroes:
+    3a) if the matching control or sample has one or zero measurements, then remove the whole protein from the list
+    3b) if the matching control or sample has two or three measurements, then generate a third measurement in the other sample based on rule 2 if needed. 
+      3ba) if the missing value is MCAR then generate another measurement for this sample by taking the ratio of the middle value and either the other higher or the other lower value of the matching sample 
+          and multiplying the existing value with it
+      3bb) if the value is censored, then do the same as in 3ba) but add both values lower than the existing one
+  4) if all three measurements are zero:
+    4a) if the matching control or sample has one or zero measurements, then remove the whole protein from the list
+    4b) if the matching control or sample has two or three measurements, then generate a third measurement in the other sample based on rule 2 if needed. 
+        Then, assume that all 3 samples are censored. by keeping the ratio of the other sample's measurements to one another, generate 3 measurements 
+        so that the middle number sits 1.5 SD away from the total sample mean
   
   all zeroes are gone!
     
@@ -803,11 +860,14 @@ def zero_remover(rowWithZeroes, posDict):
     
   # this is where the zeroes are told to vanish
   
-  for 
+  # impute values based on whether they are suspected to be MCAR or censored values
+  # MCARs should be replaced with averages of other measurements, censored values should be replaced by using a value that is an order of magnitude lower than the lowest measured in the set
+  
+  # for 
     
   if zeroCount == 0:
     repDict[zeroGroup] = zeroDict[zeroGroup]
-    continue
+    # continue
   elif len(zeroDict[zeroGroup]) - zeroCount > 1:
     # take all nonzero values, average them, and replace the zero values with the average value
     sumZero = 0
