@@ -846,8 +846,6 @@ def zero_remover(rowWithZeroes, posDict):
   repDict = defaultdict(list)
   zeroCountDict = {}
   
-
-  
   # count how many zeroes there are in each group of the dataset
   
   for zeroGroup in zeroDict:
@@ -863,8 +861,36 @@ def zero_remover(rowWithZeroes, posDict):
   # impute values based on whether they are suspected to be MCAR or censored values
   # MCARs should be replaced with averages of other measurements, censored values should be replaced by using a value that is an order of magnitude lower than the lowest measured in the set
   
-  # for 
+  # first pass (only remove single missing values):
+  
+  for groupI in zeroDict:
+    if zeroCountDict[groupI] == 0:
+      pass # handle no zeroes
+    if zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1:
+      pass # handle one missing value
+      for 
+    if zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1:
+      pass # handle larger groups with at least two measurements
+    else:
+      pass # these are the problem groups that will be handled in the second pass
     
+  # second pass: remove entries with more than one zero
+  
+  for groupI in zeroDict:
+    if zeroCountDict[groupI] == 0:
+      pass # these were handled in the previous pass
+    if zeroCountDict[groupI] == 1:
+      pass # this should not exist at this point. raise error
+    if zeroCountDict[groupI] > 1:
+      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1:
+        pass # only a single measurement
+      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 0:
+        pass # no measurements
+    
+    
+  
+  
+  """  
   if zeroCount == 0:
     repDict[zeroGroup] = zeroDict[zeroGroup]
     # continue
@@ -898,7 +924,7 @@ def zero_remover(rowWithZeroes, posDict):
   else:
     print("something terrible has happened. Zeroes could not be counted")
     raise ValueError
-    
+  """  
     
 def file_picker(cfgS):
   """open files for analysis from proteingroups_analyzer_params.cfg in the same directory"""
