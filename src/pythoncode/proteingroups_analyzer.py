@@ -644,9 +644,11 @@ def file_combiner():
       continue
     
     # remove zeroes comes here #
+  
+    print(type(rowSeries))
     
     if zeroesBool: rowSeries = zero_remover(rowSeries,groupNumDict)
-    
+    print(rowSeries)    
     
     for groupKey in groupNumDict:
       for groupI in groupNumDict[groupKey]:
@@ -833,11 +835,11 @@ def zero_remover(rowWithZeroes, posDict):
   """
   
   from collections import defaultdict
-  
+    
   zeroDict = {}
   for patchGroup in posDict:
     for patchI in posDict[patchGroup]:
-      if patchGroup in zeroDict: zeroDict.append(int(round(float(rowWithZeroes[patchI]),0)))
+      if patchGroup in zeroDict: zeroDict[patchGroup].append(int(round(float(rowWithZeroes[patchI]),0)))
       else: zeroDict[patchGroup] = [int(round(float(rowWithZeroes[patchI]),0))]
       
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
@@ -866,11 +868,29 @@ def zero_remover(rowWithZeroes, posDict):
   for groupI in zeroDict:
     if zeroCountDict[groupI] == 0:
       pass # handle no zeroes
-    if zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1:
-      pass # handle one missing value
-      for 
-    if zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1:
-      pass # handle larger groups with at least two measurements
+    if zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1: # handle exactly one zero
+      runSum = 0
+      runCount = 0
+      for avgI in zeroDict[groupI]:
+        if avgI > 0:
+          runCount += 1
+          runSum += avgI
+        else:
+          whichZero = zeroDict[groupI].index(avgI)
+        
+      rowAvg = int(runSum/runCount)
+      print(zeroDict[groupI])
+      zeroDict[groupI][whichZero] = rowAvg # replace zero with group average
+      print(zeroDict[groupI])      
+        
+    if zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1: # handle larger groups with at least two measurements
+      runSum = 0
+      runCount = 0
+      for avgI in zeroDict[groupI]:
+        if avgI > 0:
+          runCount += 1
+          runSum += avgI
+    
     else:
       pass # these are the problem groups that will be handled in the second pass
     
@@ -887,8 +907,19 @@ def zero_remover(rowWithZeroes, posDict):
       if len(zeroDict[groupI]) - zeroCountDict[groupI] == 0:
         pass # no measurements
     
+  for patchGroup in posDict:
+    for patchI in posDict[patchGroup]:
+      print(patchI)
+      if int(round(float(rowWithZeroes[patchI]),0)) == 0:
+        rowWithNoZeroes = (rowWithZeroes[0:patchI]) # okay, so I'm trying to get around this weird pandas named tuple-like object here but could not do it so far. Will continue from this point.
+        print(type(rowWithNoZeroes))
+        print(rowWithNoZeroes)
+        # rowWithNoZeroes += (patchI = zeroDict[patchGroup][posDict[patchGroup].index(patchI)])
+        # ,rowWithZeroes[patchI:])
+        # rowWithZeroes[patchI] = zeroDict[patchGroup][posDict[patchGroup].index(patchI)]
+
     
-  
+  return rowWithZeroes
   
   """  
   if zeroCount == 0:
