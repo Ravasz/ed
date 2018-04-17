@@ -39,13 +39,14 @@ def file_analyzer():
   
   global fileCount
   fileCount = 1
-  if os.path.isfile("proteingroups_analyzer_params.cfg"): # check if cfg file exists
+  cfgFileName = "proteingroups_analyzer_params.cfg"
+  if os.path.isfile(cfgFileName): # check if cfg file exists
     pass
   else:
     print("the config file named proteingroups_analyzer_params.cfg was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script")
     sys.exit(0) # end the program if config file is not found
     
-  with open("proteingroups_analyzer_params.cfg","r") as cfgF: # locate all the groups in cfgFile
+  with open(cfgFileName,"r") as cfgF: # locate all the groups in cfgFile
     groupList = []
     samplesFlag = False
     for cfgLine in cfgF:
@@ -59,12 +60,12 @@ def file_analyzer():
       if samplesFlag and "<Group" in cfgLine:
         groupList.append(cfgLine.rstrip("\n"))
   
-  empty_line_remover("<Ungrouped>") # remove all empty lines from cfgFile groups section
+  empty_line_remover("<Ungrouped>",cfgFileName) # remove all empty lines from cfgFile groups section
   for groupI in groupList:
-    empty_line_remover(groupI)
+    empty_line_remover(groupI,cfgFileName)
 
-  for fileI in file_picker("proteingroups_analyzer_params.cfg"):
-    column_finder(fileI)
+  for fileI in file_picker(cfgFileName):
+    column_finder(fileI,cfgFileName)
     fileCount += 1
     
   print("\nsample names written to config file. Please arrange them into groups to continue the analysis")
@@ -82,7 +83,7 @@ def volcano_plot_for_analyzer(xValues,yValues,outFolder):
   
   plt.figure()
   plt.scatter(xValues,yValues, marker = ".", c= (-1)*xValues, cmap=plt.get_cmap('Spectral'), vmin = -1, vmax = 1) # color = "black")
-  plt.axis([-5.5, 5.5, -0.05, 2.05])
+  plt.axis([-5.5, 12.5, -0.05, 2.05])
   
   i = 1
   while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
@@ -134,6 +135,7 @@ def venn_drawer(inpDict, outFolder):
   # print(inpDict.keys())
   # matplotlib_venn.venn2([setList[0],setList[1]], ("".join(setLabel[0][0].split("-")[:-1]),"".join(setLabel[1][0].split("-")[:-1])))
   matplotlib_venn.venn2([setList[0],setList[1]], (inpDict.keys()))
+  # matplotlib_venn.venn2([setList[0],setList[1]], set_labels=("OT1-IL7","OT1 + OT1 Cav1KO"))
   print(len(setList[0]))
   print(len(setList[1]))
   
@@ -250,6 +252,7 @@ def file_combiner():
   heatmapBool = False
   zeroesBool = False
   
+  # with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
   with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
 
     for cfgLine in cfgFile:
@@ -645,10 +648,10 @@ def file_combiner():
     
     # remove zeroes comes here #
   
-    print(type(rowSeries))
+    # print(type(rowSeries))
     
     if zeroesBool: rowSeries = zero_remover(rowSeries,groupNumDict)
-    print(rowSeries)    
+    # print(rowSeries)    
     
     for groupKey in groupNumDict:
       for groupI in groupNumDict[groupKey]:
@@ -693,7 +696,7 @@ def file_combiner():
     # p value calculated. now for the fold change
     
     fCBoundMin = 1/32  # calculate fold change
-    fCBoundMax = 32
+    fCBoundMax = 4096
     
     if sum(fCD["Group2"]) == 0:
       if sum(fCD["Group1"]) > 0: fCNum = fCBoundMax
@@ -907,6 +910,9 @@ def zero_remover(rowWithZeroes, posDict):
       if len(zeroDict[groupI]) - zeroCountDict[groupI] == 0:
         pass # no measurements
     
+  for tupleItem in rowWithZeroes._fields:
+    print(tupleItem, getattr(rowWithZeroes,tupleItem))
+  
   for patchGroup in posDict:
     for patchI in posDict[patchGroup]:
       print(patchI)
@@ -914,6 +920,7 @@ def zero_remover(rowWithZeroes, posDict):
         rowWithNoZeroes = (rowWithZeroes[0:patchI]) # okay, so I'm trying to get around this weird pandas named tuple-like object here but could not do it so far. Will continue from this point.
         print(type(rowWithNoZeroes))
         print(rowWithNoZeroes)
+        
         # rowWithNoZeroes += (patchI = zeroDict[patchGroup][posDict[patchGroup].index(patchI)])
         # ,rowWithZeroes[patchI:])
         # rowWithZeroes[patchI] = zeroDict[patchGroup][posDict[patchGroup].index(patchI)]
@@ -991,13 +998,13 @@ def file_picker(cfgS):
   
   return fileL
 
-def empty_line_remover(markerS):
+def empty_line_remover(markerS,configFile):
   """helper function to remove empty lines from cfg file. Needs markerS as argument, like "<Ungrouped>" """
   
   import sys
   
   extraLinesFlag = False
-  with open("proteingroups_analyzer_params.cfg","r") as outF:
+  with open(configFile,"r") as outF:
     contentsL = outF.readlines()
     ungroupedStart = contentsL.index(markerS + "\n")
     ungroupedEnd = contentsL.index("</" + markerS[1:] + "\n")
@@ -1010,13 +1017,13 @@ def empty_line_remover(markerS):
           sys.exit(0)
   
   if extraLinesFlag:
-    with open("proteingroups_analyzer_params.cfg","w") as outF:
+    with open(configFile,"w") as outF:
       firstHalf = contentsL[:ungroupedStart + 1]
       lastHalf = contentsL[ungroupedEnd:]
       outF.writelines(firstHalf)
       outF.writelines(lastHalf)
     
-def column_finder(filePath):
+def column_finder(filePath, outConfigFile):
   """identify columns for analysis in all other functions"""
   
   import os.path
@@ -1042,7 +1049,7 @@ def column_finder(filePath):
     sampleCount += 1
   currF.close()
   
-  with open("proteingroups_analyzer_params.cfg","r") as outF:
+  with open(outConfigFile,"r") as outF:
     contentsL = outF.readlines()
     global outputFolder
     outputFolder = contentsL[contentsL.index("<Outputfolder>\n") + 1].rstrip("\r\n")
@@ -1052,7 +1059,7 @@ def column_finder(filePath):
     for sampleI in sampleL:
       unGroupedN = contentsL.index("</Ungrouped>\n")
       contentsL.insert(unGroupedN, "%s-%d\n" % (sampleI,fileCount,))
-  with open("proteingroups_analyzer_params.cfg","w") as outF:
+  with open(outConfigFile,"w") as outF:
     outF.writelines(contentsL)
 
 def ROutputFormatter():
