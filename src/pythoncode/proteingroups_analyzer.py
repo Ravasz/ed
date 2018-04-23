@@ -651,6 +651,9 @@ def file_combiner():
     # print(type(rowSeries))
     
     if zeroesBool: rowSeries = zero_remover(rowSeries,groupNumDict)
+    
+    if rowSeries == "discarded": 
+      continue
     # print(rowSeries)    
     
     for groupKey in groupNumDict:
@@ -837,7 +840,7 @@ def zero_remover(rowWithZeroes, posDict):
   not finished yet
   """
   
-  from collections import defaultdict
+  from collections import OrderedDict
     
   zeroDict = {}
   for patchGroup in posDict:
@@ -845,11 +848,13 @@ def zero_remover(rowWithZeroes, posDict):
       if patchGroup in zeroDict: zeroDict[patchGroup].append(int(round(float(rowWithZeroes[patchI]),0)))
       else: zeroDict[patchGroup] = [int(round(float(rowWithZeroes[patchI]),0))]
       
+  # print(zeroDict)
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
   
   
-  repDict = defaultdict(list)
   zeroCountDict = {}
+  
+  problemCount = 0
   
   # count how many zeroes there are in each group of the dataset
   
@@ -871,7 +876,8 @@ def zero_remover(rowWithZeroes, posDict):
   for groupI in zeroDict:
     if zeroCountDict[groupI] == 0:
       pass # handle no zeroes
-    if zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1: # handle exactly one zero
+    elif zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1: # handle exactly one zero
+      # print(zeroDict)
       runSum = 0
       runCount = 0
       for avgI in zeroDict[groupI]:
@@ -879,47 +885,121 @@ def zero_remover(rowWithZeroes, posDict):
           runCount += 1
           runSum += avgI
         else:
-          whichZero = zeroDict[groupI].index(avgI)
+          whichZero = zeroDict[groupI].index(0)
         
       rowAvg = int(runSum/runCount)
-      print(zeroDict[groupI])
+      # print(zeroDict[groupI])
       zeroDict[groupI][whichZero] = rowAvg # replace zero with group average
-      print(zeroDict[groupI])      
+      # print(zeroDict[groupI])      
         
-    if zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1: # handle larger groups with at least two measurements
+    elif zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1: # handle larger groups with at least two measurements - not finished yet
+      whichZeroL = []
       runSum = 0
       runCount = 0
       for avgI in zeroDict[groupI]:
         if avgI > 0:
           runCount += 1
           runSum += avgI
+        else:
+          whichZeroL.append(zeroDict[groupI].index(0))
+          zeroDict[groupI][0] = 1
+      print(whichZeroL)
+        
+      rowAvg = int(runSum/runCount)
+      raise ValueError
+    
+    
     
     else:
-      pass # these are the problem groups that will be handled in the second pass
+      problemCount += 1 # these are the problem groups that will be handled in the second pass
+      if problemCount == len(zeroDict):
+        return "discarded"
+        # print("row discarded")
+        # print(problemCount)
+        # print(zeroCountDict)
+        # print(rowWithZeroes)
     
-  # second pass: remove entries with more than one zero
+  # second pass: process groups with more than one zero
+  
+    # count how many zeroes there are in each group of the dataset
+  
+  for zeroGroup in zeroDict:
+    zeroCount = 0
+    for zeroI in zeroDict[zeroGroup]:
+      if zeroI == 0:
+        zeroCount += 1
+    
+    zeroCountDict[zeroGroup] = zeroCount
+    
   
   for groupI in zeroDict:
     if zeroCountDict[groupI] == 0:
       pass # these were handled in the previous pass
-    if zeroCountDict[groupI] == 1:
-      pass # this should not exist at this point. raise error
-    if zeroCountDict[groupI] > 1:
-      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1:
-        pass # only a single measurement
+    elif zeroCountDict[groupI] == 1: # this should not exist at this point. raise error
+      print("this thing should not be")
+      raise ValueError
+       
+    elif zeroCountDict[groupI] > 1:
+      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1: # only a single measurement
+        # print(zeroDict[groupI])
+        uniqueVal = 0
+        for singleI in zeroDict[groupI]:
+          if singleI > 0:
+            uniqueVal = singleI
+            uniqueIndex = zeroDict[groupI].index(singleI)
+            break
+        
+        valList = [int(uniqueVal * 0.8),int(uniqueVal * 1.2)]
+        
+        replacedList = []
+        for indexNum in range(len(zeroDict[groupI])):
+          replacedList.append(0)
+        
+        replacedList[uniqueIndex] = uniqueVal
+        for zeroTest in replacedList:
+          if zeroTest == 0:
+            replacedList[replacedList.index(0)] = valList[0]
+            del valList[0]
+            
+        zeroDict[groupI] = replacedList
+        
+        # print(zeroDict[groupI])
+      
+      
       if len(zeroDict[groupI]) - zeroCountDict[groupI] == 0:
+        
         pass # no measurements
     
+    else: 
+      print("how could this even happen?")
+      raise ValueError
+  
+  rowDict = OrderedDict()
+    
   for tupleItem in rowWithZeroes._fields:
-    print(tupleItem, getattr(rowWithZeroes,tupleItem))
+    if tupleItem == "Index":
+      rowDict[tupleItem] = getattr(rowWithZeroes,tupleItem)
+    
+    else: rowDict[int(tupleItem[1:])] = getattr(rowWithZeroes,tupleItem)
+  
+  # rowList = list(rowDict.items())
+  
+  rowWithNoZeroes = OrderedDict()
+
   
   for patchGroup in posDict:
     for patchI in posDict[patchGroup]:
-      print(patchI)
-      if int(round(float(rowWithZeroes[patchI]),0)) == 0:
-        rowWithNoZeroes = (rowWithZeroes[0:patchI]) # okay, so I'm trying to get around this weird pandas named tuple-like object here but could not do it so far. Will continue from this point.
-        print(type(rowWithNoZeroes))
-        print(rowWithNoZeroes)
+      # print(patchI)
+      if int(round(float(rowDict[patchI]),0)) == 0:
+          
+          for rowKey, rowValue in rowDict.items():
+            if rowKey == patchI: 
+              rowWithNoZeroes[rowKey] = 1000
+            
+            else: rowWithNoZeroes[rowKey] = rowValue
+        
+        
+        # okay, so I'm trying to get around this weird pandas named tuple-like object here but could not do it so far. Will continue from this point.
         
         # rowWithNoZeroes += (patchI = zeroDict[patchGroup][posDict[patchGroup].index(patchI)])
         # ,rowWithZeroes[patchI:])
