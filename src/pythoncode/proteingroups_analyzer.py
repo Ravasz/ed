@@ -21,8 +21,8 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
-  # file_analyzer()
-  file_combiner()
+  file_analyzer()
+  # file_combiner()
   # crapome_parser("proteinGroups_Sara_exp2_21-11-2017_Sara_id8_neg_vs_ctrl_combined_2017-12-15-2.csv", "1513022476592_Sara_D8_vs_IgG_15-12-2017.txt")
   
   
@@ -647,10 +647,10 @@ def file_combiner():
       continue
 
     discardBool = False
+    changeBool = False
     if zeroesBool: 
       rowSeries, discardBool, changeBool = zero_remover(rowSeries,groupNumDict)
-      
-    
+
     if discardBool: 
       try: finDF.drop(rowSeries.Index, inplace=True)
       except ValueError:
@@ -658,9 +658,12 @@ def file_combiner():
         print("discarding failed")
         raise
       continue
-    elif changeBool:
-      finDF.loc[rowSeries.Index] = 0 # finish this bit here
-      pass # insert new row into dataframe here
+    elif changeBool: # add back row with zeroes removed to dataframe
+      rowList = []
+      for k in rowSeries:
+        rowList.append(k)
+      rowList += [0,0]
+      finDF.loc[rowSeries.Index,:] = rowList[1:] 
     
     for groupKey in groupNumDict:
       for groupI in groupNumDict[groupKey]:
