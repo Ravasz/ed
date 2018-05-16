@@ -21,13 +21,14 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
-  file_analyzer()
-  # file_combiner()
-  # crapome_parser("proteinGroups_Sara_exp2_21-11-2017_Sara_id8_neg_vs_ctrl_combined_2017-12-15-2.csv", "1513022476592_Sara_D8_vs_IgG_15-12-2017.txt")
+  cfgFile = "/home/mate/code/ed/src/data/ptpn22/proteingroups_analyzer_params.cfg"
+  # file_analyzer(cfgFile)
+  # file_combiner(cfgFile)
+  crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
 
-def file_analyzer():
+def file_analyzer(cfgFile):
   """
   extract column names from the input files in proteingroups_analyzer_params.cfg
   and extract samples names from them.
@@ -39,7 +40,7 @@ def file_analyzer():
   
   global fileCount
   fileCount = 1
-  cfgFileName = "proteingroups_analyzer_params.cfg"
+  cfgFileName = cfgFile
   if os.path.isfile(cfgFileName): # check if cfg file exists
     pass
   else:
@@ -152,8 +153,8 @@ def histogram_plotter(valueDist,outFolder):
   
   import matplotlib.pyplot as plt
   import os
-  import numpy as np
-  from scipy.stats import norm
+  # import numpy as np
+  # from scipy.stats import norm
   
   outFigName = "P_value_dist"
   # print(valueDist)
@@ -207,7 +208,7 @@ def histogram_plotter_with_normal(valueDist,outFolder):
   
   plt.show(block = False)
   
-def file_combiner():
+def file_combiner(cfgFileName):
   """take all the files from the cfg file and combine them to a single file. 
   Read in the next file line by line.
   Remove contaminants and reverse proteins.
@@ -253,7 +254,7 @@ def file_combiner():
   zeroesBool = False
   
   # with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
-  with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
+  with open(cfgFileName,"r") as cfgFile:
 
     for cfgLine in cfgFile:
       
@@ -291,7 +292,7 @@ def file_combiner():
           elif newLine.startswith("Paired T test")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": pairedBool = True
           elif newLine.startswith("onlyAlwaysDetected")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": onlyAlwaysDetected = True
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
-          elif newLine.startswith("remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
+          elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
         continue
       
       elif cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -513,28 +514,46 @@ def file_combiner():
       mergedDF = pd.merge(namedDF, outDF.iloc[:,2:], how='outer', left_index=True, right_index=True)
       mergedDF.fillna(0, inplace = True) # fill NaN values with zeros 
       resDF = mergedDF
-
-      colNames = resDF.columns.tolist() # rearrange column names to make it moar pretty
-      
-      rearrangedCols = colNames[:2]
-      for colItem in colNames[2:]:
-        if "Peptides " in colItem:
-          rearrangedCols.append(colItem)
-          
-      for colItem in colNames[2:]:
-        if "Razor + unique peptides " in colItem:
-          rearrangedCols.append(colItem)      
-          
-      for colItem in colNames[2:]:
-        if "LFQ intensity " in colItem:
-          rearrangedCols.append(colItem)     
-          
-      resDF = resDF[rearrangedCols]
-      resDF.index.name = neededColNames[0]
       
       
     else: # true for first loop only
       resDF = outDF
+
+  
+  # rearrange column names to make it moar pretty
+
+  colNames = resDF.columns.tolist() 
+  
+  rearrangedCols = colNames[:2]
+  colTypesL = ["Peptides","Razor + unique peptides","LFQ intensity"]
+  tempColL = []
+  tempRearrangedCol = []
+  fullGroupList = []
+  for sampleGroupKey, sampleGroupValue in groupDict.items(): # add together all names into a single list #@UnusedVariable
+    for sampleNameI in sampleGroupValue:
+      fullGroupList.append(sampleNameI)
+      
+  
+  
+  for currColType in colTypesL:
+    for colItem in colNames[2:]:
+    
+      if colItem.startswith(currColType):
+        tempColL.append(colItem) # get together all col names of one kind e.g. all Peptides columns
+        
+    tempRearrangedCol = []
+    for fullGroupI in fullGroupList:
+      for tempColI in tempColL:
+        if fullGroupI == tempColI[len(currColType):].strip():
+          
+          tempRearrangedCol.append(tempColI)
+          break
+      tempColL.remove(tempColI)
+    
+    rearrangedCols += tempRearrangedCol
+      
+  resDF = resDF[rearrangedCols]
+  resDF.index.name = neededColNames[0]
 
   # print(resDF)
   
@@ -721,7 +740,7 @@ def file_combiner():
       for tTestI in fCD["Group2"]:
         if tTestI > 0: fCDict["Group2"].append(tTestI)      
       
-      fCNum = sum(fCDict["Group1"])/sum(fCDict["Group2"])
+      fCNum = (sum(fCDict["Group1"])/len(fCDict["Group1"]))/(sum(fCDict["Group2"])/len(fCDict["Group2"]))
     
     if fCNum > fCBoundMax: fCNum = fCBoundMax
     elif fCNum < fCBoundMin: fCNum = fCBoundMin
@@ -777,30 +796,14 @@ def file_combiner():
     pass
 
   if histBool:
-    finDF["LFQ intensity R-619W-1-1"] = finDF["LFQ intensity R-619W-1-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity R-619W-1-1"] = np.log2(finDF["LFQ intensity R-619W-1-1"])
-    histogram_plotter(finDF["LFQ intensity R-619W-1-1"], outputFolder) 
+    histDF = pd.DataFrame()
     
-    finDF["LFQ intensity -R619W-2-1"] = finDF["LFQ intensity -R619W-2-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity -R619W-2-1"] = np.log2(finDF["LFQ intensity -R619W-2-1"])  
-    histogram_plotter(finDF["LFQ intensity -R619W-2-1"], outputFolder)
-    
-    finDF["LFQ intensity -R619W-3-1"] = finDF["LFQ intensity -R619W-3-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity -R619W-3-1"] = np.log2(finDF["LFQ intensity -R619W-3-1"])
-    histogram_plotter(finDF["LFQ intensity -R619W-3-1"], outputFolder)
-    
-    
-    finDF["LFQ intensity -OST-1-1"] = finDF["LFQ intensity -OST-1-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity -OST-1-1"] = np.log2(finDF["LFQ intensity -OST-1-1"])
-    histogram_plotter(finDF["LFQ intensity -OST-1-1"], outputFolder) 
-    
-    finDF["LFQ intensity -OST-2-1"] = finDF["LFQ intensity -OST-2-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity -OST-2-1"] = np.log2(finDF["LFQ intensity -OST-2-1"])
-    histogram_plotter(finDF["LFQ intensity -OST-2-1"], outputFolder) 
-    
-    finDF["LFQ intensity -OST-3-1"] = finDF["LFQ intensity -OST-3-1"].astype(float).replace(0,1)
-    finDF["LFQ intensity -OST-3-1"] = np.log2(finDF["LFQ intensity -OST-3-1"])
-    histogram_plotter(finDF["LFQ intensity -OST-3-1"], outputFolder) 
+    for histColName in finDF:
+      
+      if histColName.startswith("LFQ intensity"):
+      
+        histDF[histColName] = np.log2(finDF[histColName].astype(float).replace(0,1))
+        histogram_plotter(histDF[histColName], outputFolder) 
 
 
 
@@ -864,12 +867,49 @@ def zero_remover(rowWithZeroes, posDict):
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
   
   
+  cBool = False
+  
+  fancyFlag = False # this bit is simply to handle the ptpn22 dataset with the extra r619w samples
+  for k,v in zeroDict.items():
+    if len(v) == 6: 
+      extraDict = {}
+      fancyFlag = True
+      extraDict[k] = v[3:]
+      zeroDict[k] = v[:3]
+      
+      extraZeroCount = 0
+      for extraZero in extraDict[k]:
+        if extraZero == 0:
+          extraZeroCount += 1
+      
+      if extraZeroCount > 1:
+        return rowWithZeroes, True, cBool
+      
+      elif extraZeroCount == 1:
+        cBool = True
+        runSum = 0
+        runCount = 0
+        for avgI in extraDict[k]:
+          if avgI > 0:
+            runCount += 1
+            runSum += avgI
+          else:
+            whichZero = extraDict[k].index(0)
+          
+        rowAvg = int(runSum/runCount)
+        extraDict[k][whichZero] = rowAvg # replace zero with group average     
+
+      break
+    
+    
+    
+  
+  
   zeroCountDict = {}
   
   problemCount = 0
   totZeroCount = 0
   totCount = 0
-  cBool = False
   
   # count how many zeroes there are in each group of the dataset
   
@@ -917,21 +957,21 @@ def zero_remover(rowWithZeroes, posDict):
       # print(zeroDict[groupI])      
         
     elif zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1: # handle larger groups with at least two measurements - not finished yet
-      cBool = True
-      whichZeroL = []
-      runSum = 0
-      runCount = 0
-      for avgI in zeroDict[groupI]:
-        if avgI > 0:
-          runCount += 1
-          runSum += avgI
-        else:
-          whichZeroL.append(zeroDict[groupI].index(0))
-          backupDict[groupI][0] = 1
-      print(whichZeroL)
-        
-      rowAvg = int(runSum/runCount)
-      raise ValueError
+        cBool = True
+        whichZeroL = []
+        runSum = 0
+        runCount = 0
+        for avgI in zeroDict[groupI]:
+          if avgI > 0:
+            runCount += 1
+            runSum += avgI
+          else:
+            whichZeroL.append(zeroDict[groupI].index(0))
+            backupDict[groupI][0] = 1
+        print(whichZeroL)
+          
+        rowAvg = int(runSum/runCount)
+        raise ValueError
     
     
     
@@ -982,7 +1022,7 @@ def zero_remover(rowWithZeroes, posDict):
         valList = [int(uniqueVal * 0.7),int(uniqueVal * 1.3)]
         
         replacedList = []
-        for indexNum in range(len(zeroDict[groupI])):
+        for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable
           replacedList.append(0)
         
         replacedList[uniqueIndex] = uniqueVal
@@ -1046,6 +1086,9 @@ def zero_remover(rowWithZeroes, posDict):
   
   zeroDict = deepcopy(backupDict)
   
+  if fancyFlag:
+    zeroDict[k] += extraDict[k]
+  
   # print(zeroDict)
   
   # now to merge the remodelled ZeroDict into a full row of the dataset
@@ -1104,6 +1147,7 @@ def file_picker(cfgS):
         fileListComplete = True
         break
       if fileList:
+        lineS = lineS.strip(" \n\r")
         if not os.path.isfile(lineS):
           print("file %s not found. Please check proteingroups_analyzer_params.cfg and try again." % (lineS,))
           sys.exit(0)
@@ -2056,7 +2100,7 @@ def entry_parser():
   inpF.close()
   outF.close()
   
-def crapome_parser(protFileName, crapFileName):
+def crapome_parser(cfgFileName, protFileName, crapFileName):
   """take crapome 1.1 tab delimited file as input and add it to the output of the lfq_parser method in proteingroups_parser.py.
   proteins not present in the database shall also be included."""
   import os.path
@@ -2067,7 +2111,7 @@ def crapome_parser(protFileName, crapFileName):
   resD = {}
   outputFolder = ""
   
-  with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
+  with open(cfgFileName,"r") as cfgFile:
 
     for cfgLine in cfgFile:
       if cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -2121,7 +2165,17 @@ def crapome_parser(protFileName, crapFileName):
   
   # mergedDF = pd.merge(protDF, crapDF, how='outer', left_index=True, right_index=True)
   
-  combinedDF = pd.concat([protDF.set_index('Gene names'),crapDF.set_index('protName')], axis=1, join='outer')
+  
+  # crapDF = crapDF.loc[crapDF.index.drop_duplicates()]
+  
+  protDF = protDF.set_index('Gene names')
+  protDF = protDF.groupby(protDF.index).first()
+  
+  crapDF = crapDF.set_index('protName')
+  crapDF = crapDF.groupby(crapDF.index).first()
+  
+  # protDF.drop_duplicates(inplace=True, keep='first')
+  combinedDF = pd.concat([protDF,crapDF], axis=1, join='outer')
   combinedDF["Protein names"].fillna("", inplace = True)
   combinedDF["Crapome_score"].fillna(0, inplace = True)
   combinedDF["Gene names"] = combinedDF.index
@@ -2138,10 +2192,9 @@ def crapome_parser(protFileName, crapFileName):
   
   combinedDF.set_index("Majority protein IDs", inplace = True)
   
-  # print(combinedDF)
+  print(combinedDF)
   
   combinedDF.to_csv(outF)
-  
 
   print("results written to file")
 
