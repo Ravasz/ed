@@ -8,9 +8,117 @@ Created on 7 Aug 2015
 
 def main():
   print("this is peptide parser")
-  peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
+  peptide_diff_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["-OST-1","-OST-2","-OST-3"], ["R-619W-1","-R619W-2","-R619W-3"])
+  # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
+  # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
   # ["-OST-1","-OST-2","-OST-3"]
   
+
+def peptide_diff_plotter(protName, peptidesFile, phosphoSitesFile, sample1List, sample2List):
+  """take a protein name, download its sequence, and create a bar plot showing the difference in peptide intensities between two groups
+  """
+  
+  from tools import prot_id_converter, prot_entrez_fetch
+  # from copy import deepcopy
+  import os.path
+  import sys
+  from collections import defaultdict
+  import matplotlib.pyplot as plt
+  from itertools import cycle
+  
+  print("working on: " + protName)
+  
+  print("\nprocessing files: ")
+  if os.path.isfile(peptidesFile): 
+    print(peptidesFile)
+  else: 
+    print("file %s not found" % (peptidesFile,))
+    sys.exit(0)
+    
+  if os.path.isfile(phosphoSitesFile): 
+    print(phosphoSitesFile)
+  else: 
+    print("file %s not found" % (phosphoSitesFile,))
+    sys.exit(0)   
+
+  
+  with open(peptidesFile,"r") as inpF: 
+    pep1D, uniId = peptide_collector(targetFile=inpF, targetS = protName, sampleList = sample1List, roundN = 1) # find peptides from peptides.txt for the protein name @UnusedVariable
+  print(pep1D)
+  print("peptides found for first hit")
+  
+  with open(peptidesFile,"r") as inpF:
+    pep2D, uniId = peptide_collector(targetFile=inpF, targetS = protName, sampleList = sample2List, roundN = 1)  # @UnusedVariable
+
+  print(pep2D)
+  print("peptides found for second hit")  
+  targetL = [protName]
+  idList = prot_id_converter(targetL, "10090", inpDB = "genesymbol",outDB="refseqproteingi")
+  seqL = prot_entrez_fetch(idList, retM="gb", retT="fasta")
+  for seqItem in seqL:
+    seqS = seqItem.split("\n")[1]
+    print(seqS)
+  # seqS = "MDQREILQQLLKEAQKKKLNSEEFASEFLKLKRQSTKYKADKIYPTTVAQRPKNIKKNRYKDILPYDHSLVELSLLTSDEDSSYINASFIKGVYGPKAYIATQGPLSTTLLDFWRMIWEYRILVIVMACMEFEMGKKKCERYWAEPGETQLQFGPFSISCEAEKKKSDYKIRTLKAKFNNETRIIYQFHYKNWPDHDVPSSIDPILQLIWDMRCYQEDDCVPICIHCSAGCGRTGVICAVDYTWMLLKDGIIPKNFSVFNLIQEMRTQRPSLVQTQEQYELVYSAVLELFKRHMDVISDNHLGREIQAQCSIPEQSLTVEADSCPLDLPKNAMRDVKTTNQHSKQGAEAESTGGSSLGLRTSTMNAEEELVLHSAKSSPSFNCLELNCGCNNKAVITRNGQARASPVVGEPLQKYQSLDFGSMLFGSCPSALPINTADRYHNSKGPVKRTKSTPFELIQQRKTNDLAVGDGFSCLESQLHEHYSLRELQVQRVAHVSSEELNYSLPGACDASCVPRHSPGALRVHLYTSLAEDPYFSSSPPNSADSKMSFDLPEKQDGATSPGALLPASSTTSFFYSNPHDSLVMNTLTSFSPPLNQETAVEAPSRRTDDEIPPPLPERTPESFIVVEEAGEPSPRVTESLPLVVTFGASPECSGTSEMKSHDSVGFTPSKNVKLRSPKSDRHQDGSPPPPLPERTLESFFLADEDCIQAQAVQTSSTSYPETTENSTSSKQTLRTPGKSFTRSKSLKIFRNMKKSVCNSSSPSKPTERVQPKNSSSFLNFGFGNRFSKPKGPRNPPSAWNM"
+  print("protein sequence found")
+  # annotS = deepcopy(seqS)  
+  
+  pepPos1D = defaultdict(list)
+  pepPos2D = defaultdict(list)
+  
+  for pepI in pep1D: # make new dict with each peptide log2 intensity, start position in protein sequence, and peptide length
+    pepPos1D[pepI].append(pep1D[pepI])
+    pepPos1D[pepI].append(seqS.index(pepI))
+    pepPos1D[pepI].append(len(pepI))
+  
+  for key, value in pepPos1D.items():
+    print(key,value)
+  print(len(pepPos1D))
+  
+  for pepI in pep2D:
+    pepPos2D[pepI].append(pep2D[pepI])
+    pepPos2D[pepI].append(seqS.index(pepI))
+    pepPos2D[pepI].append(len(pepI))
+  
+  for key, value in pepPos2D.items():
+    print(key,value)
+  print(len(pepPos2D))  
+  
+  uniD = defaultdict(list)
+  
+  for pepN, pepO in pepPos1D.items():
+    if pepN in pepPos2D:
+      if pepO[1] == pepPos2D[pepN][1]:
+        uniD[pepN] = [float(pepO[0]) - float(pepPos2D[pepN][0]),pepO[1],pepO[2]]
+        if uniD[pepN][0] == 0:  uniD[pepN][0] = 0.1
+      else:
+        uniD[pepN] = [int(pepO[0]),pepO[1],pepO[2]]
+    else:
+      uniD[pepN] = [int(pepO[0]),pepO[1],pepO[2]]
+     
+  for pepN, pepO in pepPos2D.items():
+    if pepN in pepPos1D:
+      if pepO[1] == pepPos1D[pepN][1]:
+        pass
+      else:
+        uniD[pepN] = [int(pepO[0]),pepO[1],pepO[2]]
+    else:
+      uniD[pepN] = [int(pepO[0]),pepO[1],pepO[2]]     
+  
+  cycolS = cycle('bgrcmk')
+  
+  fig = plt.figure()
+  ax = fig.add_subplot(111) 
+  
+  # rects1 = ax.bar(ind, yvals, width, color='r')
+  
+  for pepN,pepO in uniD.items():
+    currBar = ax.bar(pepO[1],pepO[0],pepO[2], alpha = 0.5, color = next(cycolS))
+    plt.draw()
+  
+  
+  plt.show()
+  
+
   
 def peptide_plotter(protName, peptidesFile, phosphoSitesFile, sampleList):
   """take a protein name, download its sequence, and create a bar plot with each peptide from it highlighted and quantified above the sequence. 
@@ -185,7 +293,7 @@ def prot_sequnce_drawer():
 
 
   
-def peptide_collector(targetFile, targetS, sampleList):  
+def peptide_collector(targetFile, targetS, sampleList, roundN = 0):  
   """Find all peptides which are matched to the targetS gene name in peptides.txt
   return peptide sequences as a dict of strings and uniprot ID as string. The two together work as a tuple."""
   
@@ -237,7 +345,7 @@ def peptide_collector(targetFile, targetS, sampleList):
     for pepNum in peptideD[pepItem]:
       pepSum += float(pepNum)
       if pepSum == 0: pepSum = len(peptideD[pepItem])
-    pepAvg = round(log2(pepSum/len(peptideD[pepItem])),0)
+    pepAvg = round(log2(pepSum/len(peptideD[pepItem])),roundN)
     pepD[pepItem] = pepAvg
     
   
