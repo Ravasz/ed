@@ -8,7 +8,8 @@ Created on 7 Aug 2015
 
 def main():
   print("this is peptide parser")
-  peptide_diff_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["-OST-1","-OST-2","-OST-3"], ["R-619W-1","-R619W-2","-R619W-3"])
+  prot_sequence_drawer("/home/mate/code/ed/src/data/eif5a/peptides-Jens-14-8-2018-EIF5only.txt", "/home/mate/code/ed/src/data/eif5a/HypusineSites-Jens-14-8-2018-EIF5only.txt")
+  # peptide_diff_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["-OST-1","-OST-2","-OST-3"], ["R-619W-1","-R619W-2","-R619W-3"])
   # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
   # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
   # ["-OST-1","-OST-2","-OST-3"]
@@ -188,7 +189,7 @@ def peptide_plotter(protName, peptidesFile, phosphoSitesFile, sampleList):
   
 
 
-def prot_sequnce_drawer():
+def prot_sequence_drawer(inpFileName = "/home/mate/code/ed/src/data/r619w/txt/peptides.txt", phosphoFileName = "/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt"):
   """open peptides.txt and find peptides in there corresponding to the gene name specified in the queryS variable.
   Then find the protein refseq GI using db2db
   Then, download the full protein sequence from Entrez.
@@ -197,13 +198,15 @@ def prot_sequnce_drawer():
   
   from tools import html_creator, prot_id_converter, prot_entrez_fetch
   from copy import deepcopy
+  import re, os
   print("this is peptide parser")
   
-  queryS = "Ptpn22" # this is the search term that will be worked on. It should be a protein name like "Ptpn22"
+  queryS = "Eif5a" # this is the search term that will be worked on. It should be a protein name like "Ptpn22"
+  trashList = []
   
   
   print("working on: " + queryS)
-  with open("/home/mate/code/ed/src/data/r619w/txt/peptides.txt","r") as inpF: 
+  with open(inpFileName,"r") as inpF: 
     pepL, uniId = peptide_finder(targetFile=inpF, targetS = queryS) # find peptides from peptides.txt for the protein name
   print(pepL)
   print("peptides found")
@@ -218,7 +221,11 @@ def prot_sequnce_drawer():
   pStartL = []
   pEndL = []
   for pepItem in pepL: # locate peptides in full protein sequence and store positions for starts and ends. merge overlapping peptides.
-    pepStart = seqS.index(pepItem)
+    try:
+      pepStart = seqS.index(pepItem)
+    except ValueError:
+      trashList.append(pepItem)
+      continue
     pepEnd = pepStart + len(pepItem)
     
     startCount = 0 # handle starts
@@ -257,17 +264,38 @@ def prot_sequnce_drawer():
       if curStart <= curEnd:  # check if next tag is start or end. if start, add end. if end, do nothing
         pEndL.append(pepEnd)
      
-  print(uniId)
+  # print(uniId)
   phL = []
-  with open("/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt") as phInp: # now for the phosphosite data
+  with open(phosphoFileName, "r") as phInp: # now for the phosphosite data
     for phLine in phInp:
       phList = phLine.split("\t")
-      try:
-        if uniId == phList[0]: 
-          phL.append(int(phList[1].split(";")[0]) - 1)
-      except IndexError:
-        continue
-  print(phL)
+      # print(phList)
+      
+      phNameL = phList[0].split(";")
+      
+      if uniId in phNameL: 
+        pepString = phList[67]
+        while True:
+          if pepString.find("(") == (-1): break
+          
+          modProb = float(pepString[pepString.index("(")+1:pepString.index(")")])
+          # print(modProb)
+          
+          if modProb > 0.9:
+            if seqS.find(re.sub("[^A-Z]+", "", pepString)) == -1: break # regex to select only text bits and leave out actual locations, check if the peptide is even in the target protein
+            
+            newSite = pepString.index("(") - 1 + seqS.index(re.sub("[^A-Z]+", "", pepString))
+            # print(pepString[pepString.index("(") - 1])
+            if newSite not in phL: phL.append(newSite)
+            # print(seqS[phL[-1]])
+            # print(pepString)
+            
+          pepString = pepString[pepString.index(")") + 1:]
+
+        # phL.append(int(phList[1].split(";")[0]) - 1)
+        
+  # print(phL)
+  # print(pStartL,pEndL)
   
   fullL = pStartL + pEndL
   for phItem in phL:
@@ -287,9 +315,12 @@ def prot_sequnce_drawer():
       offsetN += 37
         
   print(annotS)
-  html_creator(queryS + " peptides", annotS, queryS + ".html")
+  html_creator(queryS + " peptides", annotS, os.path.dirname(phosphoFileName) + "/" + queryS + ".html")
   print("found peptides marked in the file: ", end=" ")
   print(queryS + ".html")  
+  print("\ntrash that did not match protein sequence:")
+  for trashItem in trashList:
+    print(trashItem)
 
 
   
@@ -358,6 +389,7 @@ def peptide_finder(targetFile, targetS = "Ptpn22"):
   headerFlag = True
   peptideL = []
   uniprotId = ""
+  uniDict = {}
   for lineS in targetFile:
     if headerFlag:
       headerFlag = False
@@ -366,12 +398,38 @@ def peptide_finder(targetFile, targetS = "Ptpn22"):
     # print(lineL)
     geneNames = lineL[38].split(";")
     if geneNames[0] == "": continue
-    if geneNames[0] == targetS:
+    # if geneNames[0] == targetS:
+    if targetS in geneNames:
       if lineL[0] not in peptideL:
         peptideL.append(lineL[0])
         uniprotId = lineL[34]
-        if "-" in uniprotId:
-          uniprotId = uniprotId[:uniprotId.index("-")]
+        if ";" in uniprotId: 
+          for uniI in uniprotId.split(";"):
+            if "-" in uniI: 
+              uniJ = uniI[:uniI.index("-")]
+              if uniJ in uniDict: uniDict[uniJ] += 1
+              else: uniDict[uniJ] = 0
+            else:
+              if uniI in uniDict: uniDict[uniI] += 1
+              else: uniDict[uniI] = 0
+            
+        else: 
+          if "-" in uniprotId: uniprotId = uniprotId[:uniprotId.index("-")]
+          if uniI in uniDict: uniDict[uniI] += 1
+          else: uniDict[uniI] = 0
+        
+        
+  maxVal = 0
+  maxStr = ""
+  for keyS, valueN in uniDict.items():
+    if valueN > maxVal:
+      maxStr = keyS
+      maxVal = valueN
+      
+  uniprotId = maxStr    
+  print("\nbest match for protein ID:")
+  print(uniprotId)      
+        
   return peptideL, uniprotId
   
 if __name__ == "__main__":

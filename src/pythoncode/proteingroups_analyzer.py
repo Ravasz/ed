@@ -21,10 +21,10 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
-  cfgFile = "/home/mate/code/ed/src/data/ptpn22/proteingroups_analyzer_params.cfg"
-  # file_analyzer(cfgFile)
+  cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_eif5a.cfg"
+  file_analyzer(cfgFile)
   # file_combiner(cfgFile)
-  crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
+  # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
 
@@ -44,7 +44,7 @@ def file_analyzer(cfgFile):
   if os.path.isfile(cfgFileName): # check if cfg file exists
     pass
   else:
-    print("the config file named proteingroups_analyzer_params.cfg was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script")
+    print("the config file named %s was not found.\n One needs to be written with the names and full paths of files to be analyzed and placed in the same directory as this script" % cfgFileName)
     sys.exit(0) # end the program if config file is not found
     
   with open(cfgFileName,"r") as cfgF: # locate all the groups in cfgFile

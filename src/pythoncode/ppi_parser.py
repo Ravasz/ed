@@ -8,11 +8,21 @@ Then, get all their sequences from entrez and write these out in STDOut.
 '''
 
 def main():
+  import os.path
+  
   print("this is ppi_parser \n")
   # name_collector()
   # sh3_counter()
-  protname_compare()
+  outL = protname_compare()
   # biogrid_parser()
+  
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_interactors_combined_31-07-2018.txt"),"w") 
+  
+  for outI in outL:
+    outF.write(outI)
+    outF.write("\n")
+  
+  outF.close()
 
 
 def protname_compare():
@@ -23,8 +33,8 @@ def protname_compare():
 
   intList = [x.lower() for x in intactList] # convert the list to lowercase
 
-  
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-113578-3.4.152.tab2-genes.txt"),"rU") 
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "biogrid_csk_interactors_31-07-2018.txt"),"rU") 
+  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-113578-3.4.152.tab2-genes.txt"),"rU") 
   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
   # This is stripped from the biogrid output file by loading it into excel and copying both columns with genes names in it to a single column in textedit. 
   # I could write one that parses the biogrid output file but I won't as I'm lazy
@@ -36,10 +46,11 @@ def protname_compare():
       fullList.append(inpLine.strip().lower())
   
   for intactI in intList:
+    intactI = intactI.decode("UTF-8")
     if intactI.lower() not in fullList:
       fullList.append(intactI.lower())
   
-  # print "---"
+  print("---")
   
   titleL = []
 
@@ -95,14 +106,14 @@ def intact_parser(outDataType = "genesymbol"):
   
   print("processing intact file")
   
-  baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
+  baitStr = "CSK" # gene name of bait protein. Has to be entered all caps
   
   # relPath = "ptpn22_ppi_data/ptpn22.txt"
   # relPath = "ptpn22_ppi_data/csk.txt"
   #relPath = "data/ptpn22-intact-mi-tab27-07-08-2017.txt"
   #inpF = file_importer(relPath, "r")
   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptp4a1.txt"),"r")
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_intact_31-07-2018.txt"),"r")
   headerFlag = True
   preyL = []
   foundFlagA = False
