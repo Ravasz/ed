@@ -10,6 +10,12 @@ Can be freely edited or deleted anytime.
 
 def main():  
   print("you are in the sandbox")
+  pandas_tester()
+  
+  
+  
+  
+def test_bio():
   from Bio.Seq import Seq
   from Bio.Alphabet import IUPAC
   new_seq = Seq ("GATCAGAAG", IUPAC.unambiguous_dna)
@@ -25,12 +31,23 @@ def main():
   
   import Bio
   print(Bio.__version__)
+  
+
+
+def pandas_tester():
+  import pandas as pd
+  
+  df = pd.DataFrame({'targetCol': [True, False, False, True, True], 'secondCol': ["one", "two", "three", "four", "five"], 'numCol': [4, 8, 2, 16, 32]}, index=[10,20,30,40,50])  
+  print(df.columns)
+  
+
 
 def floater():
   from decimal import Decimal
   a = 0.1
   print(a)
   print(Decimal(a))
+
 
 def finder_thing():
   """just find a line in a file..."""

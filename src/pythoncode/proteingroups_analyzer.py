@@ -21,9 +21,9 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
-  cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_eif5a.cfg"
-  file_analyzer(cfgFile)
-  # file_combiner(cfgFile)
+  cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
+  # file_analyzer(cfgFile)
+  file_combiner(cfgFile)
   # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
@@ -84,7 +84,7 @@ def volcano_plot_for_analyzer(xValues,yValues,outFolder):
   
   plt.figure()
   plt.scatter(xValues,yValues, marker = ".", c= (-1)*xValues, cmap=plt.get_cmap('Spectral'), vmin = -1, vmax = 1) # color = "black")
-  plt.axis([-5.5, 12.5, -0.05, 2.05])
+  plt.axis([-5.5, 6.5, -0.05, 6.55])
   
   i = 1
   while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
@@ -221,12 +221,24 @@ def file_combiner(cfgFileName):
   import scipy.stats
   from time import strftime
   from math import isnan,log2
-  from collections import defaultdict
+  from collections import defaultdict, OrderedDict
   import numpy as np
   # from random import randint
   
   pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
   pd.set_option("display.max_columns", 50)
+  
+  
+  class OrderedDefaultDict(OrderedDict): 
+    """create an object that combines properties of the defaultdict(list) and the ordered dict classes. 
+    Really just creates a default dict with default values as list type"""
+    factory = list # can actually change this to something else create any other default value type
+
+    def __missing__(self, key):
+        self[key] = value = self.factory()
+        return value
+  
+  
   
   def dfjoin(dfToJoin): 
     """merge a series with indexes of the same name to a single object.
@@ -239,7 +251,7 @@ def file_combiner(cfgFileName):
 
   inpFileList = []
   groupList = []
-  groupDict = defaultdict(list)
+  groupDict = OrderedDefaultDict() # defaultdict(list)
   resDF = pd.DataFrame()
   dateStr = strftime('%Y-%m-%d')
   expID = ""
@@ -252,6 +264,7 @@ def file_combiner(cfgFileName):
   volcanoBool = False
   heatmapBool = False
   zeroesBool = False
+  backgroundBool = False
   
   # with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
   with open(cfgFileName,"r") as cfgFile:
@@ -293,6 +306,7 @@ def file_combiner(cfgFileName):
           elif newLine.startswith("onlyAlwaysDetected")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": onlyAlwaysDetected = True
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
           elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
+          elif newLine.startswith("Background threshold") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": backgroundBool = True
         continue
       
       elif cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -594,7 +608,7 @@ def file_combiner(cfgFileName):
 #   Pandas(Index='Q9CPY7', _1='Lap3', _2='Cytosol aminopeptidase', _3='3', _4='3', _5='5', _6='5', _7='3', _8='3', _9='5', _10='5', _11='34967000', _12='22258000', _13='92727000', _14='95797000')
 #   Pandas(Index='Q9CQ10', _1='Chmp3', _2='Charged multivesicular body protein 3', _3='1', _4='1', _5='5', _6='5', _7='1', _8='1', _9='5', _10='5', _11='4970000', _12='1681700', _13='79799000', _14='69307000')
     
-  groupNumDict = defaultdict(list)
+  groupNumDict = OrderedDefaultDict()
   
   for groupName in groupDict:
     for sampleName in groupDict[groupName]:
@@ -616,6 +630,7 @@ def file_combiner(cfgFileName):
   vennD = defaultdict(dict)
   dupD = {}
   
+  print("processing entries")
   for rowSeries in resDF.itertuples():
     # print(rowSeries)
     # l += 1
@@ -692,15 +707,14 @@ def file_combiner(cfgFileName):
         except ValueError:
           print(groupI)
           print(rowSeries)
+          print("incorrect intensity values selected from dataset")
           raise
         
         if curValueT == 0: curValueT = ndVal # 90000 + randint(0,20000) # 100000 is a good value to set for non detected proteins for t testing
         
         elif vennBool and not isnan(curValueT): # build nested dict with gene names for venn diagram generation.
           colNameS = resDF.columns[groupI-1].split(" intensity ")[1]
-          if groupKey in vennD: 
-            if colNameS in vennD[groupKey]: vennD[groupKey][colNameS].append(rowSeries.index)
-            else: vennD[groupKey][colNameS] = [rowSeries.index]
+          if groupKey in vennD and colNameS in vennD[groupKey]: vennD[groupKey][colNameS].append(rowSeries.index)
           else: vennD[groupKey][colNameS] = [rowSeries.index]
           
         curValueT = np.log2(curValueT) # use log2 LFQ values for p value calculation
@@ -717,8 +731,20 @@ def file_combiner(cfgFileName):
           
   
    
+    if backgroundBool: # test if protein is more abundant in sample than control
+      if sum(tTestD["Group1"])/len(tTestD["Group1"]) + np.log2(2) > sum(tTestD["Group2"])/len(tTestD["Group2"]): 
+        # print(sum(tTestD["Group1"])/len(tTestD["Group1"]),sum(tTestD["Group2"])/len(tTestD["Group2"]), rowSeries)
+        try: 
+          finDF.drop(rowSeries.Index, inplace=True)
+          continue
+        except ValueError:
+          print(rowSeries[2])
+          print("discarding failed at background test")
+          raise
+      
     if pairedBool: pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
-    else: pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" , equal_var = False)[1]) # calculate p value using t test here for unpaired values
+    else: 
+      pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" , equal_var = False)[1]) # calculate p value using t test here for unpaired values
     # pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise")[1])
     # pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
     if isnan(pValueNum): pValueNum = 1
@@ -759,6 +785,7 @@ def file_combiner(cfgFileName):
 #       print(vennD[vennItem][vennI])
   
   
+  
   print("")
   print(finDF)
   print("\nduplicates removed (should be zero): " + str(duplicateCount))
@@ -788,7 +815,23 @@ def file_combiner(cfgFileName):
     volcano_plot_for_analyzer(volcanoDF["Log2 Fold change"],volcanoDF["P value"],outputFolder)
 
   
-  if vennBool:
+  if vennBool: 
+#     print(resDF.columns)
+#     print(resDF.columns[groupI-1])
+#     print(finDF.columns)
+#     print(finDF.columns[groupI-1])
+#     print(finDF[finDF.columns[groupI-1]])
+#     print(finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist())
+#     print(len(finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist()))
+
+    for groupKey in groupNumDict:
+      for groupI in groupNumDict[groupKey]:
+        colNameS = finDF.columns[groupI-1].split(" intensity ")[1]
+        # print(finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist())
+        vennD[groupKey][colNameS] = finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist()
+        
+    # print(vennD)
+
     venn_drawer(vennD, outputFolder)
   
   if heatmapBool:
@@ -866,40 +909,42 @@ def zero_remover(rowWithZeroes, posDict):
   # if rowWithZeroes.Index == "Q9D787": print(zeroDict, posDict) # okay so if group 1 is listed first, then the program does not work properly
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
   
-  
+  print(rowWithZeroes)
+  print("+++")
   cBool = False
   
-  fancyFlag = False # this bit is simply to handle the ptpn22 dataset with the extra r619w samples
-  for k,v in zeroDict.items():
-    if len(v) == 6: 
-      extraDict = {}
-      fancyFlag = True
-      extraDict[k] = v[3:]
-      zeroDict[k] = v[:3]
-      
-      extraZeroCount = 0
-      for extraZero in extraDict[k]:
-        if extraZero == 0:
-          extraZeroCount += 1
-      
-      if extraZeroCount > 1:
-        return rowWithZeroes, True, cBool
-      
-      elif extraZeroCount == 1:
-        cBool = True
-        runSum = 0
-        runCount = 0
-        for avgI in extraDict[k]:
-          if avgI > 0:
-            runCount += 1
-            runSum += avgI
-          else:
-            whichZero = extraDict[k].index(0)
-          
-        rowAvg = int(runSum/runCount)
-        extraDict[k][whichZero] = rowAvg # replace zero with group average     
-
-      break
+#   fancyFlag = False # this bit is simply to handle the ptpn22 dataset with the extra r619w samples
+#   for k,v in zeroDict.items():
+#     print(k,v)
+#     if len(v) == 6: 
+#       extraDict = {}
+#       fancyFlag = True
+#       extraDict[k] = v[3:]
+#       zeroDict[k] = v[:3]
+#       
+#       extraZeroCount = 0
+#       for extraZero in extraDict[k]:
+#         if extraZero == 0:
+#           extraZeroCount += 1
+#       
+#       if extraZeroCount > 1:
+#         return rowWithZeroes, True, cBool
+#       
+#       elif extraZeroCount == 1:
+#         cBool = True
+#         runSum = 0
+#         runCount = 0
+#         for avgI in extraDict[k]:
+#           if avgI > 0:
+#             runCount += 1
+#             runSum += avgI
+#           else:
+#             whichZero = extraDict[k].index(0)
+#           
+#         rowAvg = int(runSum/runCount)
+#         extraDict[k][whichZero] = rowAvg # replace zero with group average     
+# 
+#       break
     
     
     
@@ -1086,8 +1131,8 @@ def zero_remover(rowWithZeroes, posDict):
   
   zeroDict = deepcopy(backupDict)
   
-  if fancyFlag:
-    zeroDict[k] += extraDict[k]
+#   if fancyFlag:
+#     zeroDict[k] += extraDict[k]
   
   # print(zeroDict)
   
@@ -1120,6 +1165,8 @@ def zero_remover(rowWithZeroes, posDict):
   repairedDF = pd.DataFrame(repairedDict, index = [rowDict["Index"]])
   
   for repairedObj in repairedDF.itertuples():
+    print(repairedObj)
+    print("---")
       
     return repairedObj, False, cBool
   

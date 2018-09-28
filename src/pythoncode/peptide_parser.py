@@ -8,9 +8,9 @@ Created on 7 Aug 2015
 
 def main():
   print("this is peptide parser")
-  prot_sequence_drawer("/home/mate/code/ed/src/data/eif5a/peptides-Jens-14-8-2018-EIF5only.txt", "/home/mate/code/ed/src/data/eif5a/HypusineSites-Jens-14-8-2018-EIF5only.txt")
+  # prot_sequence_drawer("/home/mate/code/ed/src/data/eif5a/eif5-29-08-2018-peptides.txt", "/home/mate/code/ed/src/data/eif5a/eif5-28-08-2018-Phospho (STY)Sites.txt")
   # peptide_diff_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["-OST-1","-OST-2","-OST-3"], ["R-619W-1","-R619W-2","-R619W-3"])
-  # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
+  peptide_plotter("Eif5a", "/home/mate/code/ed/src/data/eif5a/eif5-29-08-2018-peptides.txt","/home/mate/code/ed/src/data/eif5a/eif5-28-08-2018-Phospho (STY)Sites.txt", ["E1_CT_LY","E1_CT_TR","E2_CT_LY","E2_CT_TR","E3_CT_LY","E3_CT_TR"])
   # peptide_plotter("Ptpn22", "/home/mate/code/ed/src/data/r619w/txt/peptides.txt","/home/mate/code/ed/src/data/r619w/txt/phosphosites.txt", ["R-619W-1","-R619W-2","-R619W-3"])
   # ["-OST-1","-OST-2","-OST-3"]
   
@@ -166,7 +166,9 @@ def peptide_plotter(protName, peptidesFile, phosphoSitesFile, sampleList):
   pepPosD = defaultdict(list)
   
   for pepI in pepD: # make new dict with each peptide log2 intensity, start position in protein sequence, and peptide length
-    pepPosD[pepI].append(pepD[pepI])
+    
+    if pepD[pepI] > 1: pepPosD[pepI].append(pepD[pepI])
+    else: pepPosD[pepI].append(1.0) # if peptide intensity is 0, show as an intensity of 1 to make it visible
     pepPosD[pepI].append(seqS.index(pepI))
     pepPosD[pepI].append(len(pepI))
   
@@ -181,7 +183,8 @@ def peptide_plotter(protName, peptidesFile, phosphoSitesFile, sampleList):
   # rects1 = ax.bar(ind, yvals, width, color='r')
   
   for pepN,pepO in pepPosD.items():
-    currBar = ax.bar(pepO[1],pepO[0],pepO[2], alpha = 0.5, color = next(cycolS))
+    print(pepO[1],pepO[0],pepO[2])
+    currBar = ax.bar(pepO[1],pepO[0],pepO[2], align = "edge", alpha = 0.5, color = next(cycolS))
     plt.draw()
   
   
