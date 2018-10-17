@@ -265,6 +265,7 @@ def file_combiner(cfgFileName):
   heatmapBool = False
   zeroesBool = False
   backgroundBool = False
+  rankBool = False
   
   # with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
   with open(cfgFileName,"r") as cfgFile:
@@ -307,6 +308,7 @@ def file_combiner(cfgFileName):
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
           elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
           elif newLine.startswith("Background threshold") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": backgroundBool = True
+          elif newLine.startswith("Rank list") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": rankBool = True
         continue
       
       elif cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -622,6 +624,10 @@ def file_combiner(cfgFileName):
   finDF = resDF.copy()
   finDF["P value"] = 0.0
   finDF["Log2 Fold change"] = 0.0
+  if rankBool:
+    finDF["Avg1"] = 0.0
+    finDF["Avg2"] = 0.0
+
   
   protNameList = []
   protNameDouble = []
@@ -696,7 +702,10 @@ def file_combiner(cfgFileName):
       rowList = []
       for k in rowSeries:
         rowList.append(k)
-      rowList += [0,0]
+
+      while len(rowList)-1 < len(finDF.loc[rowSeries.Index,:]):
+        rowList.append(0)
+
       finDF.loc[rowSeries.Index,:] = rowList[1:] 
     
     for groupKey in groupNumDict:
@@ -716,8 +725,11 @@ def file_combiner(cfgFileName):
           colNameS = resDF.columns[groupI-1].split(" intensity ")[1]
           if groupKey in vennD and colNameS in vennD[groupKey]: vennD[groupKey][colNameS].append(rowSeries.index)
           else: vennD[groupKey][colNameS] = [rowSeries.index]
-          
-        curValueT = np.log2(curValueT) # use log2 LFQ values for p value calculation
+        
+        negFlag = False # handle log2 of negative values by calculating log2 of absolute value and then flipping the result negative
+        if curValueT < 0: negFlag = True  
+        if negFlag: curValueT = np.log2(abs(curValueT)) * (-1) # use log2 LFQ values for p value calculation
+        else: curValueT = np.log2(curValueT)
         
         if groupKey in tTestD: tTestD[groupKey].append(curValueT)
         else: 
@@ -741,7 +753,7 @@ def file_combiner(cfgFileName):
           print(rowSeries[2])
           print("discarding failed at background test")
           raise
-      
+    
     if pairedBool: pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
     else: 
       pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" , equal_var = False)[1]) # calculate p value using t test here for unpaired values
@@ -776,6 +788,10 @@ def file_combiner(cfgFileName):
     finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
     finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
     
+    if rankBool:
+      finDF.at[rowSeries.Index,"Avg1"] = round((sum(fCDict["Group1"])/len(fCDict["Group1"])),5)
+      finDF.at[rowSeries.Index,"Avg2"] = round((sum(fCDict["Group2"])/len(fCDict["Group2"])),5)
+    
   finDF.dropna(axis=0, how='any', inplace=True)
   
 #   for vennItem in vennD:
@@ -784,7 +800,11 @@ def file_combiner(cfgFileName):
 #       print(vennI)
 #       print(vennD[vennItem][vennI])
   
-  
+
+  if rankBool:
+    finDF["rank1"] = finDF["Avg1"].rank(method="dense")
+    finDF["rank2"] = finDF["Avg2"].rank(method="dense")
+    finDF.drop(columns=["Avg1", "Avg2"])
   
   print("")
   print(finDF)
@@ -828,7 +848,7 @@ def file_combiner(cfgFileName):
       for groupI in groupNumDict[groupKey]:
         colNameS = finDF.columns[groupI-1].split(" intensity ")[1]
         # print(finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist())
-        vennD[groupKey][colNameS] = finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(x) > 0)].index.tolist()
+        vennD[groupKey][colNameS] = finDF[finDF[finDF.columns[groupI-1]].apply(lambda x: int(round(float(x),0)) > 0)].index.tolist()
         
     # print(vennD)
 
@@ -909,8 +929,8 @@ def zero_remover(rowWithZeroes, posDict):
   # if rowWithZeroes.Index == "Q9D787": print(zeroDict, posDict) # okay so if group 1 is listed first, then the program does not work properly
   # built a dict with with groups as keys, and LFQ values as a list in each group as values
   
-  print(rowWithZeroes)
-  print("+++")
+  # print(rowWithZeroes)
+  # print("+++")
   cBool = False
   
 #   fancyFlag = False # this bit is simply to handle the ptpn22 dataset with the extra r619w samples
@@ -956,6 +976,8 @@ def zero_remover(rowWithZeroes, posDict):
   totZeroCount = 0
   totCount = 0
   
+  scaleFactor = 2 # when creating missing values based on the other sample's average, use this scaling factor to divide the group average. Recommended factor is 2.
+  
   # count how many zeroes there are in each group of the dataset
   
   for zeroGroup in zeroDict:
@@ -982,9 +1004,9 @@ def zero_remover(rowWithZeroes, posDict):
   
   for groupI in zeroDict:
 
-    if zeroCountDict[groupI] == 0:
-      continue # handle no zeroes
-    elif zeroCountDict[groupI] == 1 and len(zeroDict[groupI]) > 1: # handle exactly one zero
+    if zeroCountDict[groupI] == 0 or (len(zeroDict[groupI]) - zeroCountDict[groupI] > 2): # handle at least 3 measurements or a full row of measurements
+      continue 
+    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: # handle exactly two measurements when at least one is missing
       # print(zeroDict)
       cBool = True
       runSum = 0
@@ -1000,28 +1022,9 @@ def zero_remover(rowWithZeroes, posDict):
       # print(zeroDict[groupI])
       backupDict[groupI][whichZero] = rowAvg # replace zero with group average
       # print(zeroDict[groupI])      
-        
-    elif zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 1: # handle larger groups with at least two measurements - not finished yet
-        cBool = True
-        whichZeroL = []
-        runSum = 0
-        runCount = 0
-        for avgI in zeroDict[groupI]:
-          if avgI > 0:
-            runCount += 1
-            runSum += avgI
-          else:
-            whichZeroL.append(zeroDict[groupI].index(0))
-            backupDict[groupI][0] = 1
-        print(whichZeroL)
-          
-        rowAvg = int(runSum/runCount)
-        raise ValueError
-    
-    
     
     else:
-      problemCount += 1 # these are the problem groups that will be handled in the second pass. They have one or zero measurements out of 3 (or more)
+      problemCount += 1 # these are the problem groups that will be handled in the second pass. They have one or zero measurements out of at least 3
       if problemCount == len(zeroDict):
         return rowWithZeroes, True, False
         # print("row discarded")
@@ -1046,90 +1049,122 @@ def zero_remover(rowWithZeroes, posDict):
     
 
   for groupI in zeroDict:
-    if zeroCountDict[groupI] == 0:
-      continue # these were handled in the previous pass
-    elif zeroCountDict[groupI] == 1: # this should not exist at this point. raise error
-      print("this thing should not be")
-      raise ValueError
+    if len(zeroDict[groupI]) - zeroCountDict[groupI] > 2:
+      continue # at least 3 measurements. these were handled in the previous pass
+#     elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: # this should not exist at this point. raise error
+#       print("this thing should not be")
+#       raise ValueError
        
-    elif zeroCountDict[groupI] > 1:
+    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2 and zeroCountDict[groupI] == 0:# two measurements, no missing values
+      continue
+    
+    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2 and zeroCountDict[groupI] > 0: # two measurements with missing values These should have been handled in the previous pass and therefore should not exist at this point. 
+      print("this should not be")
+      raise ValueError
+      
+    
+    else: # less than two measurements
       
       cBool = True
       
-      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1: # only a single measurement
-        uniqueVal = 0
-        for singleI in zeroDict[groupI]:
-          if singleI > 0:
-            uniqueVal = singleI
-            uniqueIndex = zeroDict[groupI].index(singleI)
-            break
+#       if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1: # only a single measurement
+#         uniqueVal = 0
+#         for singleI in zeroDict[groupI]:
+#           if singleI > 0:
+#             uniqueVal = singleI
+#             uniqueIndex = zeroDict[groupI].index(singleI)
+#             break
+#         
+#         valList = [int(uniqueVal * 0.7),int(uniqueVal * 1.3)]
+#         
+#         replacedList = []
+#         for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable
+#           replacedList.append(0)
+#         
+#         replacedList[uniqueIndex] = uniqueVal
+#         for zeroTest in replacedList:
+#           if zeroTest == 0:
+#             replacedList[replacedList.index(0)] = valList[0]
+#             del valList[0]
+#             
+#         backupDict[groupI] = replacedList
+#         # print(backupDict)
         
-        valList = [int(uniqueVal * 0.7),int(uniqueVal * 1.3)]
-        
-        replacedList = []
-        for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable
-          replacedList.append(0)
-        
-        replacedList[uniqueIndex] = uniqueVal
-        for zeroTest in replacedList:
-          if zeroTest == 0:
-            replacedList[replacedList.index(0)] = valList[0]
-            del valList[0]
-            
-        backupDict[groupI] = replacedList
-        # print(backupDict)
-        
-      
-      if len(zeroDict[groupI]) - zeroCountDict[groupI] == 0: # no measurements
         # print(rowWithZeroes)
         
-        otherKey = "" # find the other key in the dict
-        for dictKey in zeroDict.keys():
-          if dictKey != groupI:
-            otherKey = dictKey
-            break
-        
-        normCount = 0
-        normSum = 0
-        normAvg = 0
+      otherKey = "" # find the other key in the dict
+      for dictKey in zeroDict.keys():
+        if dictKey != groupI:
+          otherKey = dictKey
+          break
+      
+      normCount = 0
+      normSum = 0
+      normAvg = 0
 
-        for normItem in zeroDict[otherKey]: # calculate average of the other group
-          normCount += 1
-          normSum += normItem
-        
-        normAvg = int(normSum/normCount)
-        
-        normSD = 0
-        currSD = 0
-        for normItem in zeroDict[otherKey]: # calculate SD
-          # print(currSD)
-          currSD += (normAvg - normItem) * (normAvg - normItem)
-        
-#         print("===")
-#         print(zeroDict[otherKey])
-#         print(normAvg)
-#         print(normCount)
-#         print(currSD)
-        normSD = int(sqrt(currSD/normCount))
-#         print(normSD)
-        
-        replacedList = []
-        
-        if len(zeroDict[groupI])%2 == 1: replacedList.append(int(normAvg/2)) # add in newly generated control numbers into list
-          
-        for j in range(int(floor(len(zeroDict[groupI])/2))):
-          replacedList.append(int((((j + 1) * normSD) + normAvg)/2))
-          replacedList.append(int((normAvg - ((j + 1) * normSD))/2))
-          
-        backupDict[groupI] = replacedList
-
-        
+      for normItem in zeroDict[otherKey]: # calculate average of the other group
+        normCount += 1
+        normSum += normItem
+      
+      normAvg = int(normSum/normCount)
+      
+      normSD = 0
+      currSD = 0
+      for normItem in zeroDict[otherKey]: # calculate SD
+        currSD += (normAvg - normItem) * (normAvg - normItem)
+      
+      normSD = int(sqrt(currSD/normCount))
+      # print(normAvg)
+      # print(normSD)
+      
+      replacedList = []
+      for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable, make new list the same length as list to fill in
+        replacedList.append(0)
+      
+      uniqueVal = -1 # locate position and value of the single measurement that is non zero
+      for singleI in zeroDict[groupI]:
+        if singleI > 0:
+          uniqueVal = singleI
+          uniqueIndex = zeroDict[groupI].index(singleI)
+          break
+      
+      # print(uniqueVal)
+      
+      
     
-    else: 
-      print("how could this even happen?")
-      raise ValueError
+      if uniqueVal == -1: # no measurements, create all
+        if len(replacedList) == 2: dummyList = [(normAvg / scaleFactor) - (normSD / 2), (normAvg / scaleFactor) + (normSD / 2)]
+        else: dummyList = [(normAvg / scaleFactor) - normSD, normAvg / scaleFactor, (normAvg / scaleFactor) + normSD] # the 3 items that will be used to fill in missing values. SD can be big enough to get numbers below zero here. 
+        for j in range(len(dummyList)):
+          replacedList[j] = dummyList[j] # add them in here
+        # print(replacedList)
+      
+      else: # exactly one measurement, generate 2
+        if len(replacedList) == 2: 
+          dummyList = [uniqueVal - (normSD / 2), uniqueVal + (normSD / 2)]
+          for k in range(len(dummyList)):
+            replacedList[k] = dummyList[k] # add them in here
+        else:  
+          dummyList = [uniqueVal - normSD, uniqueVal + normSD] # the 3 items that will be used to fill in missing values
+          # print(dummyList)
+          # print(replacedList)
+          
+          for k in range(len(dummyList)): # put the new numbers in while keeping the single measurement in place
+            if k == uniqueIndex: replacedList[k] = uniqueVal
+            else: replacedList[k] = dummyList[k]
+          
+      
+#       if len(zeroDict[groupI])%2 == 1: replacedList.append(int(normAvg/2)) # add in newly generated control numbers into list
+#         
+#       for j in range(int(floor(len(zeroDict[groupI])/2))):
+#         replacedList.append(int((((j + 1) * normSD) + normAvg)/2))
+#         replacedList.append(int((normAvg - ((j + 1) * normSD))/2))
+        
+      backupDict[groupI] = replacedList
+
   
   zeroDict = deepcopy(backupDict)
+  # print(zeroDict)
   
 #   if fancyFlag:
 #     zeroDict[k] += extraDict[k]
@@ -1165,8 +1200,8 @@ def zero_remover(rowWithZeroes, posDict):
   repairedDF = pd.DataFrame(repairedDict, index = [rowDict["Index"]])
   
   for repairedObj in repairedDF.itertuples():
-    print(repairedObj)
-    print("---")
+    # print(repairedObj)
+    # print("---")
       
     return repairedObj, False, cBool
   
