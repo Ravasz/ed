@@ -20,13 +20,13 @@ def file_reader(fileStr,resType="dict"):
   preferably a dict. Hmm... there is apparently a builtin csv reader. How about that.
   This needs further working on despite the simple problem to achieve the optimal solution"""
   
-  import csv
-  
-  if resType == "dict":
-    resD = {}
-    with open(fileStr,"rU") as inpF:
-      for inpLine in inpF:
-        inpList = inpLine.strip("\n\r").split(",")
+#   import csv
+#   
+#   if resType == "dict":
+#     resD = {}
+#     with open(fileStr,"rU") as inpF:
+#       for inpLine in inpF:
+#         inpList = inpLine.strip("\n\r").split(",")
   
 
 
@@ -236,7 +236,7 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   outDB is output database type, use "geneid" for Gene ID or "genbankproteinaccession" or "genbankproteingi" or "refseqproteingi" for those
  
   """
-  import urllib.request, urllib.parse, urllib.error, json
+  import urllib.request, json
   urlStr = "http://biodbnet.abcc.ncifcrf.gov/webServices/rest.php/biodbnetRestApi.json?method=db2db&format=row&input=" + inpDB + "&inputValues=" + ",".join(protList) + "&outputs=" + outDB + "&taxonId=" + orgnID  
   print("connecting to biodbnet. This might take a while...")
   uParsed = urllib.request.urlopen(urlStr)  
@@ -506,7 +506,7 @@ def go_term_advanced_lookup(protID):
   
   if protID not in idList: 
     
-    import urllib.request, urllib.parse, urllib.error
+    import urllib.request #, urllib.parse, urllib.error
   
     txtS = urllib.request.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
     # print txtS.read()
@@ -521,7 +521,7 @@ def go_term_lookup(protID):
   
   Take in a list of uniprot IDs, cut them into batches of 100, get their respective GO terms and return htem"""
   
-  import urllib.request, urllib.parse, urllib.error
+  import urllib.request
   
   txtS = urllib.request.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
   # print txtS.read()

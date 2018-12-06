@@ -234,7 +234,7 @@ def name_collector():
     if shortName.upper() not in resD and shortName != "":
       resD[shortName.upper()] = longName
       
-  for j,k in list(resD.items()):
+  for j,k in list(resD.items()): #@UnusedVariable
     print(j) #, ": ", k
   print(len(resD))
   

@@ -22,8 +22,8 @@ cfg file name: proteingroups_analyzer_params.cfg
 def main():
   print("call a function here to start")
   cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
-  # file_analyzer(cfgFile)
-  file_combiner(cfgFile)
+  file_analyzer(cfgFile)
+  # file_combiner(cfgFile)
   # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
@@ -76,6 +76,7 @@ def volcano_plot_for_analyzer(xValues,yValues,outFolder):
   
   import matplotlib.pyplot as plt
   import os
+
   # from math import log2
   
   outFigName = "volcano"
@@ -98,6 +99,7 @@ def venn_drawer(inpDict, outFolder):
   import matplotlib_venn
   import matplotlib.pyplot as plt
   import os
+  import venn2_6
   
   outFigName = "venn_group1_vs_group2"
   
@@ -108,27 +110,82 @@ def venn_drawer(inpDict, outFolder):
     print("need at least 2 groups to draw venn diagram")
     return
   
-  
-  setList = [set(),set()]
-  setLabel = [[],[]]
+  setList = [set(),set()] # set to contain all proteins in every replicate in condition one and two
+  # setLabel = [[],[]]
   groupCount = 0
-  for keyS in inpDict:
-    subSetList = [set(),set(), set()]
+  for keyT in inpDict:
+    
+    subSetList = []
+    for keyCount in range(len(inpDict[keyT])): #@UnusedVariable
+      subSetList.append(set()) # create an empty list of sets to fill groups into it
+
+      # if len(inpDict[keyT]) < 4: # handle 3 groups or even less. Will throw a warning message when less than 3 groups used
+
+    # subSetList = [set(),set(), set()]
     subCount = 0
-    for subKeyS in inpDict[keyS]:
-      if subCount < 3:
-        subSetList[subCount].update(inpDict[keyS][subKeyS])
-      setList[groupCount].update(inpDict[keyS][subKeyS])
-      subCount += 1
-    setLabel[groupCount].extend(inpDict[keyS])
-    groupCount += 1
+    for keyS in inpDict[keyT]:
+        
+      subSetList[subCount].update(inpDict[keyT][keyS]) # add all protein names to respective set for replicate
+      setList[groupCount].update(inpDict[keyT][keyS]) # add all protein names to respective group set
+      subCount +=1
+      
     plt.figure()
-    matplotlib_venn.venn3([subSetList[0],subSetList[1], subSetList[2]], (inpDict[keyS].keys()))
+    if len(subSetList) < 2:
+      print("less than 2 samples here, cannot create venn diagram from it")    
+      
+    elif len(subSetList) == 2:
+      matplotlib_venn.venn2([subSetList[0],subSetList[1]], (inpDict[keyT].keys()))
+      
+    elif len(subSetList) == 3:
+      matplotlib_venn.venn3([subSetList[0],subSetList[1], subSetList[2]], (inpDict[keyT].keys()))
+      
+    elif len(subSetList) == 4:
+
+      labelD = venn2_6.get_labels([subSetList[0], subSetList[1], subSetList[2], subSetList[3]])
+      fig, ax = venn2_6.venn4(labelD, names = list(inpDict[keyT].keys())) #@UnusedVariable
+    
+    else:
+      print("more than 4 samples found in group. Plotting only four")
+
+      labelD = venn2_6.get_labels([subSetList[0], subSetList[1], subSetList[2], subSetList[3]])
+      fig, ax = venn2_6.venn4(labelD, names = list(inpDict[keyT].keys())) # handle 4 groups with fancy new plotting tool #@UnusedVariable
+    
+      
     i = 1
     while os.path.exists(os.path.join(outFolder, (outFigName + "-" + str(i) + ".png"))):
         i += 1
-    plt.savefig(os.path.join(outFolder, (outFigName + "-"  + str(i) + ".png")))
+    plt.savefig(os.path.join(outFolder, (outFigName + "-"  + str(i) + ".png"))) # write out to new file
+    plt.close()
     
+    groupCount += 1
+      
+      
+    
+      
+#     if len(inpDict[keyT]) == 4: # handle 4 groups
+#       import venn2_6
+#       
+#       setList = [set(),set()]
+#       setLabel = [[],[]]
+#       groupCount = 0
+#       for keyS in inpDict:
+#         subSetList = [set(),set(), set(), set()]
+#         subCount = 0
+#         for subKeyS in inpDict[keyS]:
+#           if subCount < 3:
+#             subSetList[subCount].update(inpDict[keyS][subKeyS])
+#           setList[groupCount].update(inpDict[keyS][subKeyS])
+#           subCount += 1
+#         setLabel[groupCount].extend(inpDict[keyS])
+#         groupCount += 1
+#         labelD = venn2_6.get_labels([subSetList[0], subSetList[1], subSetList[2], subSetList[3]])
+#         fig, ax = venn2_6.venn4(labelD, names = ["one","two","three","four"])# list(inpDict[keyS].keys()))
+#         i = 1
+#         while os.path.exists(os.path.join(outFolder, (outFigName + "-" + str(i) + ".png"))):
+#             i += 1
+#         fig.savefig(os.path.join(outFolder, (outFigName + "-"  + str(i) + ".png")))
+#         plt.close()
+#         
   
 
   # print(setLabel)  
@@ -224,6 +281,10 @@ def file_combiner(cfgFileName):
   from collections import defaultdict, OrderedDict
   import numpy as np
   # from random import randint
+  
+  # import warnings
+  # warnings.simplefilter("error")
+  
   
   pd.set_option("display.expand_frame_repr", False) # this prevents the splitting of dataframes to multiple rows upon printing
   pd.set_option("display.max_columns", 50)
@@ -522,7 +583,7 @@ def file_combiner(cfgFileName):
     if not resDF.empty: # combine the latest dataframe into the existing frame
       outNamesDF = outDF.iloc[:,0:2]
       resNamesDF = resDF.iloc[:,0:2]
-      mergedNamesDF = pd.concat([resNamesDF, outNamesDF], axis = 1)
+      mergedNamesDF = pd.concat([resNamesDF, outNamesDF], axis = 1, sort = True)
       unifiedNamesDF = mergedNamesDF.groupby(level=0, axis=1).apply(lambda x: x.apply(dfjoin, axis=1)) # merge together columns that have the same name, e.g. gene names with gene names and protein names with protein names
       # print(unifiedNamesDF)
 
@@ -637,7 +698,13 @@ def file_combiner(cfgFileName):
   dupD = {}
   
   print("processing entries")
+  rowCountNum = 0
+  degreeFlag = True
   for rowSeries in resDF.itertuples():
+    rowCountNum += 1
+    # print(rowCountNum)
+    if rowCountNum % 100 == 0: print(".",end="", flush = True)
+    if rowCountNum % 5000 == 0: print("")
     # print(rowSeries)
     # l += 1
     tTestD = defaultdict(list)
@@ -688,6 +755,7 @@ def file_combiner(cfgFileName):
 
     discardBool = False
     changeBool = False
+    
     if zeroesBool: 
       rowSeries, discardBool, changeBool = zero_remover(rowSeries,groupNumDict)
 
@@ -726,20 +794,18 @@ def file_combiner(cfgFileName):
           if groupKey in vennD and colNameS in vennD[groupKey]: vennD[groupKey][colNameS].append(rowSeries.index)
           else: vennD[groupKey][colNameS] = [rowSeries.index]
         
-        negFlag = False # handle log2 of negative values by calculating log2 of absolute value and then flipping the result negative
-        if curValueT < 0: negFlag = True  
-        if negFlag: curValueT = np.log2(abs(curValueT)) * (-1) # use log2 LFQ values for p value calculation
+        if curValueT < 0: curValueT = np.log2(abs(curValueT)) * (-1) # use log2 LFQ values for p value calculation, handle log2 of negative values by calculating log2 of absolute value and then flipping the result negative
         else: curValueT = np.log2(curValueT)
         
+        if zeroesBool and curValueT == 0: continue # skip empty lanes for fold change and T test calculations
+        
         if groupKey in tTestD: tTestD[groupKey].append(curValueT)
-        else: 
-          tTestD[groupKey] = [curValueT]
+        else: tTestD[groupKey] = [curValueT]
         
         if curValueF == 0: curValueF = ndVal # 90000 + randint(0,20000) # 100000 is a good value to set for non detected proteins
         
         if groupKey in fCD: fCD[groupKey].append(curValueF)
-        else:
-          fCD[groupKey] = [curValueF]
+        else: fCD[groupKey] = [curValueF]
           
   
    
@@ -756,11 +822,16 @@ def file_combiner(cfgFileName):
     
     if pairedBool: pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
     else: 
+      if degreeFlag:
+        if len(tTestD["Group2"]) < 3 or len(tTestD["Group1"]) < 3:
+          print("Warning, T testing may be inaccurate due to low sample numbers:")
+          print(tTestD)
+          degreeFlag = False
       pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" , equal_var = False)[1]) # calculate p value using t test here for unpaired values
     # pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise")[1])
     # pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
     if isnan(pValueNum): pValueNum = 1
-    # if pValueNum < 0.01: pValueNum = 0.01
+    # if 0.4 < pValueNum < 0.6: print(rowSeries)
     
     # p value calculated. now for the fold change
     
@@ -802,8 +873,8 @@ def file_combiner(cfgFileName):
   
 
   if rankBool:
-    finDF["rank1"] = finDF["Avg1"].rank(method="dense")
-    finDF["rank2"] = finDF["Avg2"].rank(method="dense")
+    finDF["rank1"] = finDF["Avg1"].rank(method="dense", ascending=False)
+    finDF["rank2"] = finDF["Avg2"].rank(method="dense", ascending=False)
     finDF.drop(columns=["Avg1", "Avg2"])
   
   print("")
@@ -836,8 +907,6 @@ def file_combiner(cfgFileName):
 
   
   if vennBool: 
-#     print(resDF.columns)
-#     print(resDF.columns[groupI-1])
 #     print(finDF.columns)
 #     print(finDF.columns[groupI-1])
 #     print(finDF[finDF.columns[groupI-1]])
@@ -916,7 +985,7 @@ def zero_remover(rowWithZeroes, posDict):
   """
   
   from collections import OrderedDict
-  from math import sqrt, floor
+  from math import sqrt #, floor
   from copy import deepcopy
   import pandas as pd
   
