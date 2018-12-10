@@ -2,6 +2,12 @@
 Created on 10 Dec 2018
 
 @author: mate
+
+a few quick functions to bootstrap overlapping protein sets
+
+- proteome_list_maker: create list of all protein names in mouse proteome from mass spec dataset fasta file
+- sublist_maker: collect protein names out of a .csv file supplied for this project, and save them as two separate files
+- take a random subset of the list produced by proteome_list_maker and check how many items are present in either exactly one of the sublists made by sublist_maker, in both lists, or in neither lists.
 '''
 
 
