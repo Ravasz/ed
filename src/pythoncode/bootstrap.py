@@ -54,31 +54,31 @@ def list_combiner():
   from random import sample
   import statistics
   
-  proteomeF = open("/home/mate/code/ed/src/data/protein_lists/mouse_full_protein_list.txt","r")
-  PFile = open("/home/mate/code/ed/src/data/protein_lists/mouse_PPP.txt","r")
-  GFile = open("/home/mate/code/ed/src/data/protein_lists/mouse_PPG.txt","r")  
-  
   # read files in to memory and make lists:
-  
-  proteomeL = []
-  for protLine in proteomeF:
-    protI = protLine.strip()
-    proteomeL.append(protI)
+  with open("/home/mate/code/ed/src/data/protein_lists/mouse_full_protein_list.txt","r") as proteomeF:
+    proteomeL = []
+    for protLine in proteomeF:
+      protI = protLine.strip()
+      proteomeL.append(protI)
+
+  with open("/home/mate/code/ed/src/data/protein_lists/mouse_PPP.txt","r") as PFile:
+    PL = []
+    for protLine in PFile:
+      protI = protLine.strip()
+      PL.append(protI)  
+    PFile.close()
     
-  PL = []
-  for protLine in PFile:
-    protI = protLine.strip()
-    PL.append(protI)  
-    
-  GL = []
-  for protLine in GFile:
-    protI = protLine.strip()
-    GL.append(protI) # read files in to memory and make lists
+  with open("/home/mate/code/ed/src/data/protein_lists/mouse_PPG.txt","r") as GFile:
+    GL = []
+    for protLine in GFile:
+      protI = protLine.strip()
+      GL.append(protI) 
+    GFile.close() 
   
   rangeNum = 1000
-  subSampleSize = 1000
+  subSampleSize = 2000
 
-  countD = {"P":[],"G":[],"No":[]} # store results
+  countD = {"P":[],"G":[], "Both":[],"No":[]} # store results
   
   print("iterating " + str(rangeNum) + " times...")
   
@@ -88,35 +88,57 @@ def list_combiner():
     currL = sample(proteomeL,subSampleSize) # take random subsample with n members
     PCount = 0
     GCount = 0
+    BothCount = 0
     NoCount = 0
     for protN in currL:
       foundFlag = False
-      if protN in PL: 
-        PCount += 1
+      if protN in PL:
+        if protN in GL:
+          BothCount += 1
+        else:
+          PCount += 1
         foundFlag = True
-      if protN in GL: 
+        
+      if protN in GL and not protN in PL: 
         GCount += 1
         foundFlag = True
+      
       if not foundFlag: NoCount += 1
+      
     countD["P"].append(PCount)
     countD["G"].append(GCount)
+    countD["Both"].append(BothCount)
     countD["No"].append(NoCount)
   
+  resultL = zip(countD["P"],countD["G"],countD["Both"],countD["No"])
+  
+  with open("/home/mate/code/ed/src/data/protein_lists/PPP_PPG_occurrences_it-" + str(rangeNum) + "_subsample-" + str(subSampleSize) + ".txt","w") as outF:
+    outF.write("PPP,PPG,Both,Neither\n")
+    
+    for outS in resultL:
+      for outI in outS:
+        if outI is outS[-1]: outF.write(str(outI) + "\n") 
+        else: outF.write(str(outI) + ",") 
   
   PAverage = round(sum(countD["P"])/len(countD["P"]),2)
   PSTD = statistics.stdev(countD["P"])
   
   GAverage = round(sum(countD["G"])/len(countD["G"]),2)
   GSTD = statistics.stdev(countD["G"])  
+
+  BothAverage = round(sum(countD["Both"])/len(countD["Both"]),2)
+  BothSTD = statistics.stdev(countD["Both"])  
     
   NoAverage = round(sum(countD["No"])/len(countD["No"]),2)
   NoSTD = statistics.stdev(countD["No"])  
+
   
-  print(str(i) + " iterations, with a random sample size of " + str(rangeNum) + "\n" )
+  print(str(i) + " iterations, with a random sample size of " + str(subSampleSize) + "\n" )
   
-  print("\nfound in PPP list: " + str(PAverage) + " +- " + str(round(PSTD,2)) + "\n")
-  print("found in PPG list: " + str(GAverage) + " +- " + str(round(GSTD,2)) + "\n")  
-  print("not present in either list: " + str(NoAverage) + " +- " + str(round(NoSTD,2)) + "\n")
+  print("\nfound in only in PPP list: " + str(PAverage) + " +- " + str(round(PSTD,2)) + "\n")
+  print("found in only in PPG list: " + str(GAverage) + " +- " + str(round(GSTD,2)) + "\n")  
+  print("found in both lists: " + str(BothAverage) + " +- " + str(round(BothSTD,2)) + "\n")  
+  print("not found in either list: " + str(NoAverage) + " +- " + str(round(NoSTD,2)) + "\n")
     
 list_combiner()
     
