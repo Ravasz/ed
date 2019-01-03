@@ -82,7 +82,7 @@ def list_combiner():
     GFile.close() 
   
   rangeNum = 1000
-  subSampleSize = 2000
+  subSampleSize = 2900
 
   countD = {"P":[],"G":[], "Both":[],"No":[]} # store results
   
@@ -97,19 +97,16 @@ def list_combiner():
     BothCount = 0
     NoCount = 0
     for protN in currL:
-      foundFlag = False
       if protN in PL:
         if protN in GL:
           BothCount += 1
         else:
           PCount += 1
-        foundFlag = True
-        
-      if protN in GL and not protN in PL: 
+                  
+      elif protN in GL: 
         GCount += 1
-        foundFlag = True
       
-      if not foundFlag: NoCount += 1
+      else: NoCount += 1
       
     countD["P"].append(PCount)
     countD["G"].append(GCount)
