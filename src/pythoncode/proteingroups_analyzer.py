@@ -22,8 +22,8 @@ cfg file name: proteingroups_analyzer_params.cfg
 def main():
   print("call a function here to start")
   cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
-  file_analyzer(cfgFile)
-  # file_combiner(cfgFile)
+  # file_analyzer(cfgFile)
+  file_combiner(cfgFile)
   # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
@@ -317,6 +317,7 @@ def file_combiner(cfgFileName):
   dateStr = strftime('%Y-%m-%d')
   expID = ""
   normName = ""
+  renameDict = {}
   onlyAlwaysDetected = False
   histBool = False
   pValueDist = False
@@ -385,6 +386,36 @@ def file_combiner(cfgFileName):
             outputFolder = newLine.rstrip("\n")
             break
       
+      elif cfgLine == "<Rename>\n": # rename samples to whatever the user specifies
+        lineCount = 0
+        while True:
+          newLine = next(cfgFile)
+          if newLine.rstrip("\n") == "</Rename>": break  
+          lineCount += 1
+          if lineCount == 40: 
+            print("something terrible has happened! more than 40 samples to rename")
+            sys.exit(0)
+          if newLine == "\n": continue
+          elif "=" in newLine:
+            cfgList = newLine.strip().split("=")
+            if len(cfgList) == 2: renameDict[cfgList[0].strip(" \n\t")] = cfgList[1].strip(" \n\t") # store rename things as a dict 
+            else: 
+              print("there needs to be exactly one  = sign in each rename line. Instead you typed:")
+              print(newLine)
+              sys.exit(0)
+          else: 
+            print("to rename a sample type in the Rename block something like this: OriginalSampleName1 = NewSampleName1. Instead you typed: ")
+            print(newLine)
+            sys.exit(0)
+          
+          uniqueColNameL = []
+          for renVal in renameDict.values(): # test if renamed column names are unique
+            if renVal in uniqueColNameL:
+              print("when renaming samples, the new samples need to be unique. " + renVal + " appears to be duplicate.")
+              sys.exit(0)
+        
+          
+      
       elif cfgLine == "<Samples>\n": # place all samples from all groups into a single list 
         lineCount = 0
         while True:
@@ -432,6 +463,7 @@ def file_combiner(cfgFileName):
 
   elif len(groupDict) < 2:
     print("Need to have at least 2 groups to compare them")
+    print(groupDict)
     sys.exit(0)                  
   
   groupNumD = {}
@@ -631,6 +663,20 @@ def file_combiner(cfgFileName):
       
   resDF = resDF[rearrangedCols]
   resDF.index.name = neededColNames[0]
+  
+  # print(resDF.columns)
+  if len(renameDict) > 0: # rename columns here if required by user
+    for oldName, newName in renameDict.items():
+      resDF.rename(columns = {"Peptides " + oldName:"To_replace Peptides " + newName}, inplace = True)
+      resDF.rename(columns = {"Razor + unique peptides " + oldName:"To_replace Razor + unique peptides " + newName}, inplace = True)
+      resDF.rename(columns = {"LFQ intensity " + oldName:"To_replace LFQ intensity " + newName}, inplace = True)
+    
+    for replaceableColName in resDF.columns: # this is needed to avoid a rare error of renaming a column accidentally twice
+      if replaceableColName.startswith("To_replace"):
+        resDF.rename(columns = {replaceableColName:replaceableColName[11:]}, inplace = True)
+    resDF.rename(columns = {}, inplace = True)
+  # print(resDF.columns)
+
 
   # print(resDF)
   
@@ -640,7 +686,7 @@ def file_combiner(cfgFileName):
   
   normRow = resDF.loc[resDF['Gene names'] == normName]
   if normRow.empty:
-    if normName == "": print("no gene name given for normalization, so skipping this step.")
+    if normName == "": pass # print("no gene name given for normalization, so skipping this step.")
     else: print("%s not found in data set, skipping normalization" % (normName,))
   elif len(normRow) > 1:
     print("more than one row found for %s. need exactly one. Skipping normalization" % (normName,)) 
@@ -675,7 +721,8 @@ def file_combiner(cfgFileName):
   
   for groupName in groupDict:
     for sampleName in groupDict[groupName]:
-      if groupName in groupNumDict:
+      if sampleName in renameDict: sampleName = renameDict[sampleName]
+      if groupName in groupNumDict: 
         groupNumDict[groupName].append(resDF.columns.get_loc("LFQ intensity " + sampleName) + 1)
       else: groupNumDict[groupName] = [resDF.columns.get_loc("LFQ intensity " + sampleName) + 1]
   # print(groupNumDict)
@@ -1049,6 +1096,7 @@ def zero_remover(rowWithZeroes, posDict):
   
   # count how many zeroes there are in each group of the dataset
   
+  throwOutL = []
   for zeroGroup in zeroDict:
 
     zeroCount = 0
@@ -1057,11 +1105,21 @@ def zero_remover(rowWithZeroes, posDict):
       if zeroI == 0:
         zeroCount += 1
         totZeroCount += 1
-    
+    if zeroCount > len(zeroDict[zeroGroup])/2: throwOutL.append(0)
+    else: throwOutL.append(1)
     zeroCountDict[zeroGroup] = zeroCount
     
-  if totZeroCount > round(totCount/2,0): # throw out entries where more than half of the measurements are missing
+  if sum(throwOutL) == 0: # discard data where is not a single group with at least half of nonzero measurements. This test could be rewritten to be somewhat faster.
+    # print(zeroDict)
     return rowWithZeroes, True, cBool
+    
+  
+    
+
+
+#   if totZeroCount > round(totCount/2,0): # throw out entries where more than half of the measurements are missing - rethinking this bit: only throw out samples if more than half of the measurements are missing from both samples
+#     print(zeroDict)
+#     return rowWithZeroes, True, cBool
     
   # this is where the zeroes are told to vanish
   
@@ -1073,35 +1131,64 @@ def zero_remover(rowWithZeroes, posDict):
   
   for groupI in zeroDict:
 
-    if zeroCountDict[groupI] == 0 or (len(zeroDict[groupI]) - zeroCountDict[groupI] > 2): # handle at least 3 measurements or a full row of measurements
+    if zeroCountDict[groupI] == 0: # handle a full row of measurements (no missing values)
       continue 
-    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: # handle exactly two measurements when at least one is missing
-      # print(zeroDict)
+    elif zeroCountDict[groupI] == 1: # one missing measurement...
+      if len(zeroDict[groupI]) > 2: # out of at least 3. add group average as missing value
+        cBool = True
+        runSum = 0
+        runCount = 0
+        for avgI in zeroDict[groupI]:
+          if avgI > 0:
+            runCount += 1
+            runSum += avgI
+          else:
+            whichZero = zeroDict[groupI].index(0)
+          
+        rowAvg = int(runSum/runCount)
+        backupDict[groupI][whichZero] = rowAvg # replace zero with group average
+        
+      elif len(zeroDict[groupI]) == 2: # out of two measurements. Create second measurement that is 50% of the other measurement.
+        cBool = True
+        whichZero = zeroDict[groupI].index(0)
+        backupDict[groupI][whichZero] = int(round(sum(zeroDict[groupI])*0.5,0))
+        
+      else: # group contains a single measurement and its missing. replace zero based on other sample in second loop.
+        pass
+      
+      
+    elif (zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 2) or len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: 
+      # at least 3 measurements with a number of unknowns. Fill them in based on the distribution of the 3 known measurements. 
+      # do the same for two measurements with multiple unknowns (single missing values were dealt with before)
       cBool = True
-      runSum = 0
-      runCount = 0
+      runMin = max(zeroDict[groupI])
+      runMax = max(zeroDict[groupI])
       for avgI in zeroDict[groupI]:
         if avgI > 0:
-          runCount += 1
-          runSum += avgI
-        else:
-          whichZero = zeroDict[groupI].index(0)
-        
-      rowAvg = int(runSum/runCount)
-      # print(zeroDict[groupI])
-      backupDict[groupI][whichZero] = rowAvg # replace zero with group average
-      # print(zeroDict[groupI])      
+          if avgI < runMin: runMin = avgI
+      
+      incrementN = (runMax - runMin) / zeroCountDict[groupI] 
+      
+      incCount = 1
+      for i in range(len(zeroDict[groupI])):
+        if backupDict[groupI][i] == 0: 
+          backupDict[groupI][i] = runMin + (incrementN * incCount)
+          incCount += 1
     
-    else:
-      problemCount += 1 # these are the problem groups that will be handled in the second pass. They have one or zero measurements out of at least 3
-      if problemCount == len(zeroDict):
-        return rowWithZeroes, True, False
-        # print("row discarded")
-        # print(problemCount)
-        # print(zeroCountDict)
-        # print(rowWithZeroes)
+#     else: # hopeless cases where imputation will need information from the other group. Here there are at least two samples missing and there are at most two measurements available and there are more samples missing than present.
+#       problemCount += 1 # these are the problem groups that will be handled in the second pass. They have one or zero measurements out of at least 3
+#       if problemCount == len(zeroDict):
+#         return rowWithZeroes, True, False
+#         # print("row discarded")
+#         # print(problemCount)
+#         # print(zeroCountDict)
+#         # print(rowWithZeroes)
     
-  # second pass: process groups with more than one zero
+  
+  
+  
+  
+  # second pass: process groups where data is imputed based on the other sample
   
     # count again how many zeroes there are in each group of the dataset
     
@@ -1118,48 +1205,16 @@ def zero_remover(rowWithZeroes, posDict):
     
 
   for groupI in zeroDict:
-    if len(zeroDict[groupI]) - zeroCountDict[groupI] > 2:
-      continue # at least 3 measurements. these were handled in the previous pass
+    if zeroCountDict[groupI] == 0:
+      continue # already filled in samples. These were good samples to begin with, or were filled in during the previous iteration
 #     elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: # this should not exist at this point. raise error
 #       print("this thing should not be")
 #       raise ValueError
-       
-    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2 and zeroCountDict[groupI] == 0:# two measurements, no missing values
-      continue
-    
-    elif len(zeroDict[groupI]) - zeroCountDict[groupI] == 2 and zeroCountDict[groupI] > 0: # two measurements with missing values These should have been handled in the previous pass and therefore should not exist at this point. 
-      print("this should not be")
-      raise ValueError
       
     
-    else: # less than two measurements
+    else: # less than two measurements and more measurements missing than present
       
       cBool = True
-      
-#       if len(zeroDict[groupI]) - zeroCountDict[groupI] == 1: # only a single measurement
-#         uniqueVal = 0
-#         for singleI in zeroDict[groupI]:
-#           if singleI > 0:
-#             uniqueVal = singleI
-#             uniqueIndex = zeroDict[groupI].index(singleI)
-#             break
-#         
-#         valList = [int(uniqueVal * 0.7),int(uniqueVal * 1.3)]
-#         
-#         replacedList = []
-#         for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable
-#           replacedList.append(0)
-#         
-#         replacedList[uniqueIndex] = uniqueVal
-#         for zeroTest in replacedList:
-#           if zeroTest == 0:
-#             replacedList[replacedList.index(0)] = valList[0]
-#             del valList[0]
-#             
-#         backupDict[groupI] = replacedList
-#         # print(backupDict)
-        
-        # print(rowWithZeroes)
         
       otherKey = "" # find the other key in the dict
       for dictKey in zeroDict.keys():
@@ -1183,54 +1238,20 @@ def zero_remover(rowWithZeroes, posDict):
         currSD += (normAvg - normItem) * (normAvg - normItem)
       
       normSD = int(sqrt(currSD/normCount))
-      # print(normAvg)
-      # print(normSD)
-      
-      replacedList = []
-      for indexNum in range(len(zeroDict[groupI])): #@UnusedVariable, make new list the same length as list to fill in
-        replacedList.append(0)
-      
-      uniqueVal = -1 # locate position and value of the single measurement that is non zero
-      for singleI in zeroDict[groupI]:
-        if singleI > 0:
-          uniqueVal = singleI
-          uniqueIndex = zeroDict[groupI].index(singleI)
-          break
-      
-      # print(uniqueVal)
-      
-      
-    
-      if uniqueVal == -1: # no measurements, create all
-        if len(replacedList) == 2: dummyList = [(normAvg / scaleFactor) - (normSD / 2), (normAvg / scaleFactor) + (normSD / 2)]
-        else: dummyList = [(normAvg / scaleFactor) - normSD, normAvg / scaleFactor, (normAvg / scaleFactor) + normSD] # the 3 items that will be used to fill in missing values. SD can be big enough to get numbers below zero here. 
-        for j in range(len(dummyList)):
-          replacedList[j] = dummyList[j] # add them in here
-        # print(replacedList)
-      
-      else: # exactly one measurement, generate 2
-        if len(replacedList) == 2: 
-          dummyList = [uniqueVal - (normSD / 2), uniqueVal + (normSD / 2)]
-          for k in range(len(dummyList)):
-            replacedList[k] = dummyList[k] # add them in here
-        else:  
-          dummyList = [uniqueVal - normSD, uniqueVal + normSD] # the 3 items that will be used to fill in missing values
-          # print(dummyList)
-          # print(replacedList)
-          
-          for k in range(len(dummyList)): # put the new numbers in while keeping the single measurement in place
-            if k == uniqueIndex: replacedList[k] = uniqueVal
-            else: replacedList[k] = dummyList[k]
-          
-      
-#       if len(zeroDict[groupI])%2 == 1: replacedList.append(int(normAvg/2)) # add in newly generated control numbers into list
-#         
-#       for j in range(int(floor(len(zeroDict[groupI])/2))):
-#         replacedList.append(int((((j + 1) * normSD) + normAvg)/2))
-#         replacedList.append(int((normAvg - ((j + 1) * normSD))/2))
-        
-      backupDict[groupI] = replacedList
 
+      incrementN = normSD * 2 / zeroCountDict[groupI] 
+      # increment is again used to fill in any number of samples so that the average stays the same and the resulting dataset has the same SD as the other sample
+      if sum(zeroDict[groupI]) > 0: 
+        normAvg = sum(zeroDict[groupI])
+        runMin = normAvg - normSD
+      else: runMin = normAvg / scaleFactor - normSD
+      
+
+      incCount = 0
+      for i in range(len(zeroDict[groupI])):
+        if backupDict[groupI][i] == 0: 
+          backupDict[groupI][i] = runMin + (incrementN * incCount) # this bit is not done yet
+          incCount += 1
   
   zeroDict = deepcopy(backupDict)
   # print(zeroDict)
