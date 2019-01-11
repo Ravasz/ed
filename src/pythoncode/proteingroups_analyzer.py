@@ -24,7 +24,7 @@ def main():
   cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
   # file_analyzer(cfgFile)
   file_combiner(cfgFile)
-  # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_nozero_16-05-2018_combined_2018-05-16-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
+  # crapome_parser(cfgFile, "proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_26-11-2018_combined_2019-01-07-10.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
   
 
@@ -1088,11 +1088,11 @@ def zero_remover(rowWithZeroes, posDict):
   
   zeroCountDict = {}
   
-  problemCount = 0
   totZeroCount = 0
   totCount = 0
   
-  scaleFactor = 2 # when creating missing values based on the other sample's average, use this scaling factor to divide the group average. Recommended factor is 2.
+  scaleFactor = 10 # when creating missing values based on the other sample's average, use this scaling factor to divide the group average. 
+  # empirically, a scale factor of 10 seems to work well but it really depends on the distribution of measurements
   
   # count how many zeroes there are in each group of the dataset
   
@@ -1129,6 +1129,7 @@ def zero_remover(rowWithZeroes, posDict):
   # first pass (only remove single missing values):
   backupDict = deepcopy(zeroDict)
   
+  
   for groupI in zeroDict:
 
     if zeroCountDict[groupI] == 0: # handle a full row of measurements (no missing values)
@@ -1156,26 +1157,62 @@ def zero_remover(rowWithZeroes, posDict):
       else: # group contains a single measurement and its missing. replace zero based on other sample in second loop.
         pass
       
+     
+    elif zeroCountDict[groupI] > 1:
+      if len(zeroDict[groupI]) - zeroCountDict[groupI] >= 2: 
+        # at least 2 measurements with a number of unknowns. Fill them in based on the distribution of the 3 known measurements. 
+        # do the same for two measurements with multiple unknowns (single missing values were dealt with before)
+        cBool = True
+        runCount = 0
+        runSum = 0
+        runAvg = 0
+        for avgI in zeroDict[groupI]:
+          if avgI > 0:
+            runSum += avgI
+            runCount += 1
+        
+        runAvg = int(round(runSum / runCount,0))
+        
+        if len(zeroDict[groupI]) % 2 == 1: # if there are an odd number of samples, then add the group average first
+          backupDict[groupI][next(x for x in backupDict[groupI] if x == 0)] = runAvg
+          incN = zeroCountDict[groupI] - 1
+        else: incN = zeroCountDict[groupI]
+        
+       
+        normSD = 0
+        currSD = 0
+        for normItem in backupDict[groupI]: # calculate SD
+          currSD += (runAvg - normItem) * (runAvg - normItem)
+        
+        normSD = int(round(sqrt(currSD/runCount),0))
+        
+        missL = []
+        highFlag = False
+        halfCount = 1
+        minScale = 1
+        if int(round(runAvg - normSD,0)) < 1: minScale = normSD / runAvg
+        for j in range(incN): # generate new numbers based on group average and standard deviation @UnusedVariable
+          if highFlag:
+            highFlag = False
+            missL.append(int(round(runAvg + normSD / halfCount,0)))
+            halfCount += 1
+          else:
+            highFlag = True
+            currNum = int(round(runAvg - (normSD / minScale) / halfCount,0))
+            if currNum == 0: currNum = int(round((runAvg - (normSD / minScale) / 1.5),0))
+            missL.append(currNum)      
+        
+        missIndex = 0
+        for i in range(len(zeroDict[groupI])): # and fill them in into the backup dict
+          if backupDict[groupI][i] == 0: 
+            backupDict[groupI][i] = missL[missIndex]
+            missIndex += 1
       
-    elif (zeroCountDict[groupI] > 1 and len(zeroDict[groupI]) - zeroCountDict[groupI] > 2) or len(zeroDict[groupI]) - zeroCountDict[groupI] == 2: 
-      # at least 3 measurements with a number of unknowns. Fill them in based on the distribution of the 3 known measurements. 
-      # do the same for two measurements with multiple unknowns (single missing values were dealt with before)
-      cBool = True
-      runMin = max(zeroDict[groupI])
-      runMax = max(zeroDict[groupI])
-      for avgI in zeroDict[groupI]:
-        if avgI > 0:
-          if avgI < runMin: runMin = avgI
-      
-      incrementN = (runMax - runMin) / zeroCountDict[groupI] 
-      
-      incCount = 1
-      for i in range(len(zeroDict[groupI])):
-        if backupDict[groupI][i] == 0: 
-          backupDict[groupI][i] = runMin + (incrementN * incCount)
-          incCount += 1
-    
-#     else: # hopeless cases where imputation will need information from the other group. Here there are at least two samples missing and there are at most two measurements available and there are more samples missing than present.
+      else: 
+        # hopeless cases where imputation will need information from the other group. 
+        # Here there are at least two samples missing and there are less than two measurements available and there are more samples missing than present.
+        pass
+        
 #       problemCount += 1 # these are the problem groups that will be handled in the second pass. They have one or zero measurements out of at least 3
 #       if problemCount == len(zeroDict):
 #         return rowWithZeroes, True, False
@@ -1230,28 +1267,45 @@ def zero_remover(rowWithZeroes, posDict):
         normCount += 1
         normSum += normItem
       
-      normAvg = int(normSum/normCount)
+      normAvg = int(round(normSum/normCount,0))
       
       normSD = 0
       currSD = 0
       for normItem in zeroDict[otherKey]: # calculate SD
         currSD += (normAvg - normItem) * (normAvg - normItem)
       
-      normSD = int(sqrt(currSD/normCount))
+      normSD = int(round(sqrt(currSD/normCount),0))
 
-      incrementN = normSD * 2 / zeroCountDict[groupI] 
-      # increment is again used to fill in any number of samples so that the average stays the same and the resulting dataset has the same SD as the other sample
-      if sum(zeroDict[groupI]) > 0: 
-        normAvg = sum(zeroDict[groupI])
-        runMin = normAvg - normSD
-      else: runMin = normAvg / scaleFactor - normSD
+      if sum(zeroDict[groupI]) > 0: # if there is a single measurement, then set it as group average, otherwise use the average of the other sample and scale it down
+        runAvg = sum(zeroDict[groupI])
+        incN = zeroCountDict[groupI]
+      else: 
+        runAvg = int(round(normAvg / scaleFactor,0))
+        backupDict[groupI][next(x for x in backupDict[groupI] if x == 0)] = runAvg
+        incN = zeroCountDict[groupI] - 1
+
+      missL = []
+      highFlag = False
+      halfCount = 1
+      minScale = 1
+      if int(round(runAvg - normSD,0)) < 1: minScale = normSD / runAvg
       
-
-      incCount = 0
-      for i in range(len(zeroDict[groupI])):
+      for j in range(incN): # generate new numbers based on group average and standard deviation @UnusedVariable
+        if highFlag:
+          highFlag = False
+          missL.append(int(round(runAvg + normSD / halfCount,0)))
+          halfCount += 1
+        else:
+          highFlag = True
+          currNum = int(round(runAvg - (normSD / minScale) / halfCount,0))
+          if currNum == 0: currNum = int(round((runAvg - (normSD / minScale) / 1.5),0))
+          missL.append(currNum)          
+      
+      missIndex = 0
+      for i in range(len(zeroDict[groupI])): # and fill them in into the backup dict
         if backupDict[groupI][i] == 0: 
-          backupDict[groupI][i] = runMin + (incrementN * incCount) # this bit is not done yet
-          incCount += 1
+          backupDict[groupI][i] = missL[missIndex]
+          missIndex += 1
   
   zeroDict = deepcopy(backupDict)
   # print(zeroDict)
