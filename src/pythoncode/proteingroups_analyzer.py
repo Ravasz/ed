@@ -277,7 +277,7 @@ def file_combiner(cfgFileName):
   import pandas as pd
   import scipy.stats
   from time import strftime
-  from math import isnan,log2
+  from math import isnan #,log2
   from collections import defaultdict, OrderedDict
   import numpy as np
   # from random import randint
@@ -901,7 +901,7 @@ def file_combiner(cfgFileName):
     if fCNum > fCBoundMax: fCNum = fCBoundMax
     elif fCNum < fCBoundMin: fCNum = fCBoundMin
     
-    fCNum = log2(fCNum)
+    fCNum = np.log2(fCNum)
     
     finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
     finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
