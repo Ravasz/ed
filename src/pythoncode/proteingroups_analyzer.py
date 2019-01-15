@@ -7,11 +7,8 @@ find significantly enriched proteins in maxquant output data. This script is a m
  
 - first parse groteinGroups.txt with file_parser to extract uniprot identifiers, gene names, unique+razor peptide counts, and ko1- ko2- ko3- wt1- wt2- wt3- LFQ intensitites.
 - then, using entry_parser, remove duplicate uniprot IDs and only keep the shortest one, or the first one if tied, with the matching unique+razor count. copy that with everything else to a new file.
-- then, using lfq_parser remove 0 (undetected) lfq values and replace them random whole numbers between 1 and 100
-- then, use this dataset in R to calculate P values using the bob_ttest.R script there on the intensity values.
-- finally, using the stat_parser function here, take the gene names that have a p value of at least 0.05 and pool them for a DAVID analysis.
-- alternatively to stat_parser, volcano_plotter can be used to prepare data for the volcano plot R script
-- yet another alternative is to use set_fdr on the R output to calculate false discovery rates
+- convert LFQ values to a log scale, remove zeroes by imputation if required, nad calculate fold changes, rank and p values via T testing
+- prepare an output .csv, graphs of P value distributions, and a volcano plots to finish
 
 
 cfg file name: proteingroups_analyzer_params.cfg
