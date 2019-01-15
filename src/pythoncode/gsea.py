@@ -83,6 +83,19 @@ def gsea_cls_maker(g1Names, g2Names, testDF):
   return clsL
   
   
+def enricher_library_preparer():
+  """append the exosome data from EV_TOP_100.txt - from vesiclepedia - to the KEGG2016 collection."""
+  
+  exoFile = open("/home/mate/code/ed/src/data/cav1ko/EV_TOP_100.txt","r")
+  next(exoFile) # skip header
+  exoL = []
+  for exoLine in exoFile:
+    exoL.append(exoLine.split(" ")[-1].strip()) # add upp exosome terms into a list
+  
+  exoFile.close()
+  
+  
+
 def gsea_calculator(dataDF, geneSetO, clsList):
   import gseapy as gp
   

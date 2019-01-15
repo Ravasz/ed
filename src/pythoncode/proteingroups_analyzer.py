@@ -1025,6 +1025,19 @@ def zero_remover(rowWithZeroes, posDict):
     4b) if the matching control or sample has two or three measurements, then generate a third measurement in the other sample based on rule 2 if needed. 
         Then, assume that all 3 samples are censored. by keeping the ratio of the other sample's measurements to one another, generate 3 measurements 
         so that the middle number sits 1.5 SD away from the total sample mean
+        
+        
+  Final concept still with imputation: 
+  Much like the updated concept above, but now works for any sample size, not just 3. 
+  
+  - If there are at least 2 values in a sample group, then generate the third value as the average of the two, 
+  and any additional values can be made by calculating the standard deviation of this distribution and generating evenly spaced measurements within 1 SD from the average.
+  
+  - If there is only one measurement, then use the SD of the other sample to generate additional values, centred around the single measurement as average.
+  
+  - If there is no measurement in a sample group (all are zeroes) then use the average of the other sample, scale it down by the scale factor (usually 10) and pick again numbers using the SD.
+  
+  - if both sample groups have more than half of the measurements missing, then exclude that protein from further analysis.
   
   all zeroes are gone!
     
