@@ -94,6 +94,30 @@ def enricher_library_preparer():
   
   exoFile.close()
   
+  libFile = open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016","r")
+  
+  modFile = open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV.gmt","w")
+  
+  for libLine in libFile:
+    libL = libLine.split("\t")
+    modFile.write(libL[0])
+    modFile.write("\tNA\t")
+    libS = "\t".join(libL[1:])
+    modFile.write(libS)
+
+    
+  
+  modFile.write("top 100 exosome proteins\tNA\t")
+  for exoI in exoL[:-1]:
+    modFile.write(exoI)
+    modFile.write("\t")
+    
+  modFile.write(exoL[-1])
+  modFile.write("\n")
+  
+  libFile.close()
+  modFile.close()
+
   
 
 def gsea_calculator(dataDF, geneSetO, clsList):
@@ -118,16 +142,17 @@ def gsea_calculator(dataDF, geneSetO, clsList):
   
     
   
-  print(gs_res.res2d.index)
+  print(gs_res.res2d)
+  print(gs_res.res2d.loc["top 100 exosome proteins"])
   from gseapy.plot import gseaplot, heatmap
   terms = gs_res.res2d.index
-  gseaplot(gs_res.ranking, term=terms[4], ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatest.png", **gs_res.results[terms[0]])
+  gseaplot(gs_res.ranking, term=terms[1], ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatest.png", **gs_res.results[terms[1]])
 
 
 
   # plotting heatmap
-  genes = gs_res.res2d.genes[4].split(";")
-  heatmap(df = gs_res.heatmat.loc[genes], z_score=0, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatestheatmap.png", title=terms[4], figsize=(18,6))
+  genes = gs_res.res2d.genes[1].split(";")
+  heatmap(df = gs_res.heatmat.loc[genes], z_score=0, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatestheatmap.png", title=terms[1], figsize=(18,6))
 
 
   
@@ -176,8 +201,12 @@ def main_gsea_function():
   
   print(clsList)
   
-  gsea_calculator(dataDF = datasetDF, geneSetO = 'KEGG_2016', clsList = clsList)
+  geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV.gmt"
+    
+  gsea_calculator(dataDF = datasetDF, geneSetO = geneSetName, clsList = clsList)
   
   
   
 main_gsea_function()
+
+# enricher_library_preparer()
