@@ -265,12 +265,15 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
     return kegg_wrangler(parsedJson)
   elif "Gene Symbol" in parsedJson[0]:
     return gene_symbol_wrangler(parsedJson)
+  elif "HGNC ID" in parsedJson[0]:
+    return parsedJson
                          
   else: 
-    print("was expecting Genbank protein accessions, genbank protein GIs, Uniprot accessions or RefSeq protein GIs, but got something else:")
+    print("was expecting Genbank protein accessions, genbank protein GIs, Uniprot accessions or RefSeq protein GIs, or HGNC IDs, but got something else:")
     print(parsedJson)
     raise ValueError
- 
+
+
 def kegg_wrangler(inpAcc):
   """to be called by prot_id_converter
   Take in a loaded json file which has kegg gene IDs as results.
