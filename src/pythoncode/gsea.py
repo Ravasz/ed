@@ -82,6 +82,45 @@ def gsea_cls_maker(g1Names, g2Names, testDF):
       
   return clsL
   
+
+def enricher_library_preparer_vesiclepedia():
+  """append the exosome data from exosome datasets from vesiclepedia to the KEGG2016 collection."""
+  
+  exoFileL = [open("/home/mate/code/ed/src/data/cav1ko/vesiclepedia_results_1127.csv","r"),open("/home/mate/code/ed/src/data/cav1ko/vesiclepedia_results_1007.csv","r"), open("/home/mate/code/ed/src/data/cav1ko/vesiclepedia_results_192.csv","r")]
+  nameL = ["Vesiclepedia_1127","Vesiclepedia_1007", "Vesiclepedia_192"]
+
+  libFile = open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV.gmt","r")
+  
+  modFile = open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi.gmt","w")
+  
+  for libLine in libFile:
+    libL = libLine.split("\t")
+    modFile.write(libL[0])
+    modFile.write("\tNA\t")
+    libS = "\t".join(libL[1:])
+    modFile.write(libS)
+  
+  libFile.close()
+  
+  for i in range(len(exoFileL)):
+    exoFile = exoFileL[i]
+    next(exoFile) # skip header
+    exoL = []
+    for exoLine in exoFile:
+      exoL.append(exoLine.split(",")[-1].strip()) # add upp exosome terms into a list
+    
+    exoFile.close()
+    
+    modFile.write(nameL[i] + "\tNA\t")
+    for exoI in exoL[:-1]:
+      modFile.write(exoI.upper())
+      modFile.write("\t")
+      
+    modFile.write(exoL[-1].upper())
+    modFile.write("\n")
+    
+    
+  modFile.close()
   
 def enricher_library_preparer():
   """append the exosome data from EV_TOP_100.txt - from vesiclepedia - to the KEGG2016 collection."""
@@ -90,7 +129,7 @@ def enricher_library_preparer():
   next(exoFile) # skip header
   exoL = []
   for exoLine in exoFile:
-    exoL.append(exoLine.split(" ")[-1].strip()) # add upp exosome terms into a list
+    exoL.append(exoLine.split("\t")[0].upper().strip()) # add upp exosome terms into a list
   
   exoFile.close()
   
@@ -101,13 +140,13 @@ def enricher_library_preparer():
   for libLine in libFile:
     libL = libLine.split("\t")
     modFile.write(libL[0])
-    modFile.write("\tNA\t")
+    modFile.write("\t")
     libS = "\t".join(libL[1:])
     modFile.write(libS)
 
     
   
-  modFile.write("top 100 exosome proteins\tNA\t")
+  modFile.write("top 100 exosome proteins\t")
   for exoI in exoL[:-1]:
     modFile.write(exoI)
     modFile.write("\t")
@@ -120,9 +159,9 @@ def enricher_library_preparer():
 
   
 
-def gsea_calculator(dataDF, geneSetO, clsList):
-  import gseapy as gp
-  
+def gsea_calculator(dataDF, geneSetO, clsList, idL):
+  import gseapy as gp  
+  from gseapy.plot import gseaplot, heatmap
 
   # run gsea
   # enrichr libraries are supported by gsea module. Just provide the name
@@ -132,27 +171,24 @@ def gsea_calculator(dataDF, geneSetO, clsList):
                    cls = clsList, #'./data/P53.cls', # cls=class_vector
                    # set permutation_type to phenotype if samples >=15
                    # permutation_type='phenotype',
-                   permutation_num=100, # reduce number to speed up test
-                   outdir=None,  # do not write output to disk
+                   permutation_num=500, # reduce number to speed up test
+                   max_size = 10000, # set max size of groups. larger ones are excluded
+                   outdir="/home/mate/code/ed/src/data/cav1ko/processed/log/",  # do not write output to disk
                    no_plot=False, # Skip plotting
-                   method='signal_to_noise',
+                   method="ratio_of_classes", # 'signal_to_noise',
                    processes=4,
                    format='png')
 
   
     
+  for idI in idL:
   
-  print(gs_res.res2d)
-  print(gs_res.res2d.loc["top 100 exosome proteins"])
-  from gseapy.plot import gseaplot, heatmap
-  terms = gs_res.res2d.index
-  gseaplot(gs_res.ranking, term=terms[1], ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatest.png", **gs_res.results[terms[1]])
+    print(gs_res.res2d.loc[idI])
+    gseaplot(gs_res.ranking, term=idI, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatest-" + idI +".png", **gs_res.results[idI])
 
-
-
-  # plotting heatmap
-  genes = gs_res.res2d.genes[1].split(";")
-  heatmap(df = gs_res.heatmat.loc[genes], z_score=0, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatestheatmap.png", title=terms[1], figsize=(18,6))
+    # plotting heatmap
+    genes = gs_res.res2d.genes[idI].split(";")
+    heatmap(df = gs_res.heatmat.loc[genes], z_score=0, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/gseatestheatmap-" + idI + ".png", title=idI, figsize=(18,6))
 
 
   
@@ -181,7 +217,7 @@ def gsea_maker():
                    # gene_sets=['KEGG_2016','KEGG_2013'],
                    outdir='test/enrichr_kegg',
                    cutoff=0.5, # test dataset, use lower value of range(0,1)
-                   no_plot=True
+                   no_plot=False
                   )
   
   
@@ -190,9 +226,11 @@ def gsea_maker():
 def main_gsea_function():  
   """call all the other GSEA functions and run the whole pipeline to perform the analysis"""
   
-  group1Names = ["WT","CAV1KO"]
+  group1Names =  ["WT","CAV1KO"] # ["WT","CAV1KO","IL7"]
   group2Names = ["IL7"]
   inFile = "/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_26-11-2018_combined_2019-01-09-1.csv"
+  
+  IDList = ["top 100 exosome proteins","Vesiclepedia_1007","Vesiclepedia_192"]
     
   datasetDF = gsea_data_maker(g1Names = group1Names, g2Names = group2Names, inpF = inFile)
   clsList = gsea_cls_maker(g1Names = group1Names, g2Names = group2Names, testDF = datasetDF)
@@ -201,12 +239,12 @@ def main_gsea_function():
   
   print(clsList)
   
-  geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV.gmt"
+  geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi.gmt"
     
-  gsea_calculator(dataDF = datasetDF, geneSetO = geneSetName, clsList = clsList)
+  gsea_calculator(dataDF = datasetDF, geneSetO = geneSetName, clsList = clsList, idL = IDList)
   
   
   
 main_gsea_function()
 
-# enricher_library_preparer()
+# enricher_library_preparer_vesiclepedia()
