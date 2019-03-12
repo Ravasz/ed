@@ -68,11 +68,12 @@ def file_analyzer(cfgFile):
     
   print("\nsample names written to config file. Please arrange them into groups to continue the analysis")
 
-def volcano_plot_for_analyzer(xValues,yValues,outFolder):
+def volcano_plot_for_analyzer(plotDF,outFolder):
   """take a dataframe produced by proteingroups analyzer and plot a scatterplot with log2 fold change vs p value AKA a volcano plot"""
   
   import matplotlib.pyplot as plt
   import os
+  
 
   # from math import log2
   
@@ -81,15 +82,27 @@ def volcano_plot_for_analyzer(xValues,yValues,outFolder):
   # currFignum = max(plt.get_fignums()) + 1
   
   plt.figure()
-  plt.scatter(xValues,yValues, marker = ".", c= (-1)*xValues, cmap=plt.get_cmap('Spectral'), vmin = -1, vmax = 1) # color = "black")
-  plt.axis([-5.5, 6.5, -0.05, 6.55])
+  ax = plotDF.plot.scatter(x="Log2 Fold change", y="P value", marker = ".", c= (-1)*plotDF["Log2 Fold change"], cmap=plt.get_cmap('Spectral'), vmin = -1, vmax = 1, xlim=(-5, 5.5), ylim=(-0.05, 6.5), figsize=(10,10)) # color = "black") c= (-1)*xValues,
+  # ax.plot.axis([-5.5, 6.5, -0.05, 6.55])
+  
+  for i, txt in enumerate(plotDF["Gene names"]):
+    if plotDF["Log2 Fold change"].iat[i] < -1 and plotDF["P value"].iat[i] > 2:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["Log2 Fold change"].iat[i] > 1 and plotDF["P value"].iat[i] > 2:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["Log2 Fold change"].iat[i] > 3:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["Log2 Fold change"].iat[i] < -2:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["P value"].iat[i] > 3:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
   
   i = 1
   while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
       i += 1
   plt.savefig(os.path.join(outFolder, (outFigName + str(i) + ".png")))
   
-  plt.show(block = False)
+  plt.show# (block = False)
 
 def venn_drawer(inpDict, outFolder):
   """draw a venn diagram using the input dictionary"""
@@ -946,8 +959,12 @@ def file_combiner(cfgFileName):
     volcanoDF["P value"] = finDF["P value"].replace(0,0.000001)
     volcanoDF["P value"] = np.log10(volcanoDF["P value"])*(-1)
     volcanoDF["Log2 Fold change"] = finDF["Log2 Fold change"]
+    volcanoDF["Gene names"] = finDF["Gene names"]
     
-    volcano_plot_for_analyzer(volcanoDF["Log2 Fold change"],volcanoDF["P value"],outputFolder)
+    # print(volcanoDF)
+    volcano_plot_for_analyzer(volcanoDF,outputFolder)
+    # volcano_plot_for_analyzer(volcanoDF["Log2 Fold change"],volcanoDF["P value"],volcanoDF["Gene name"],outputFolder)
+    
 
   
   if vennBool: 
@@ -968,8 +985,30 @@ def file_combiner(cfgFileName):
     venn_drawer(vennD, outputFolder)
   
   if heatmapBool:
-    # this is still implemented in R
-    pass
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
+
+    
+    heatDF = pd.DataFrame()
+    colCopyL = ["LFQ intensity WT-1","LFQ intensity WT-2","LFQ intensity WT-3","LFQ intensity WT-4","LFQ intensity CAV1KO-1","LFQ intensity CAV1KO-2","LFQ intensity CAV1KO-3","LFQ intensity CAV1KO-4", "Log2 Fold change"]
+    heatDF = (finDF.loc[(finDF['Log2 Fold change'] < -1) | (finDF['Log2 Fold change'] > 1), colCopyL].copy()).astype(int)
+    heatDF = heatDF.sort_values(by=['Log2 Fold change'], ascending=False)
+    heatDF.drop(['Log2 Fold change'], axis = 1, inplace = True, errors = 'ignore')
+    
+    heatDF = heatDF.subtract(heatDF.min(axis=1), axis=0).divide(heatDF.max(axis=1) - heatDF.min(axis=1), axis=0).combine_first(heatDF)
+    # heatDF.apply(lambda x: x/x.max(), axis=1)
+    
+    print(heatDF)
+
+    
+    
+    sns.set(font_scale=0.5)
+    fig, ax = plt.subplots(figsize=(5,15)) 
+    heatmapO = sns.heatmap(heatDF, annot=False, ax=ax, cmap = "Blues")
+    heatmapFig = heatmapO.get_figure()
+    heatmapFig.savefig("/home/mate/code/ed/src/data/cav1ko/processed/heatmap.png")
+    
 
   if histBool:
     histDF = pd.DataFrame()

@@ -223,6 +223,23 @@ def gsea_maker():
   
   print(enr.results)
 
+def single_gsea(dataFrame, gene_sets, outdir="ssGSEA_", sample_norm_method='rank', min_size=15, max_size=2000,
+                permutation_num=0, weighted_score_type=0.25, scale=True, ascending=False, processes=4,
+                figsize=(7,6), graph_num=20, no_plot=False, seed=None, verbose=False):
+  """single sample gene set enrichment analysis. see package documentation for details, or here: https://gseapy.readthedocs.io/en/master/_modules/gseapy/gsea.html#ssgsea"""
+  import gseapy as gp  
+  from gseapy.plot import gseaplot, heatmap
+  
+  resO = gp.ssgsea(dataFrame, gene_sets = gene_sets, outdir = outdir, permutation_num=0)
+  print(resO.res2d)
+  print(resO.res2d.loc["Vesiclepedia_1007"])
+  # gseaplot(resO.ranking, term="Vesiclepedia_1007", ofname = "/home/mate/code/ed/src/data/cav1ko/processed/ssgseatest-" + "Vesiclepedia_1007" +".png", **resO.results["Vesiclepedia_1007"])
+  
+  print(resO.resultsOnSamples)
+  heatmap(resO.res2d, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/ssgseaheatmap.png", figsize = (20,40), fontN = 9)
+  
+  
+
 def main_gsea_function():  
   """call all the other GSEA functions and run the whole pipeline to perform the analysis"""
   
@@ -240,8 +257,10 @@ def main_gsea_function():
   print(clsList)
   
   geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi.gmt"
+  
+  single_gsea(dataFrame = datasetDF, gene_sets = geneSetName, outdir = "/home/mate/code/ed/src/data/cav1ko/processed/gsea/")
     
-  gsea_calculator(dataDF = datasetDF, geneSetO = geneSetName, clsList = clsList, idL = IDList)
+  # gsea_calculator(dataDF = datasetDF, geneSetO = geneSetName, clsList = clsList, idL = IDList)
   
   
   

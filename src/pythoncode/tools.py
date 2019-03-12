@@ -12,7 +12,8 @@ def main():
   
   # print prot_id_converter(testL, inpDB = "refseqproteinaccession", outDB = "genesymbol", orgnID="9606")  
   
-  intact_parser()
+  # intact_parser()
+
 
 
 def file_reader(fileStr,resType="dict"):
@@ -243,6 +244,7 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   print("connection successful")
   responseJson = uParsed.read()
   print(responseJson)
+  # print(".", end="")
   parsedJson = json.loads(responseJson.decode('utf-8'))
   # print parsedJson
   # parsedJson = [{u'Gene ID': u'54196', u'InputValue': u'Q8CCS6'}, {u'Gene ID': u'99982', u'InputValue': u'Q6ZQ88'}]
