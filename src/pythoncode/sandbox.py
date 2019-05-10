@@ -38,8 +38,13 @@ def pandas_tester():
   import pandas as pd
   
   df = pd.DataFrame({'targetCol': [True, False, False, True, True], 'secondCol': ["one", "two", "three", "four", "five"], 'numCol': [4, 8, 2, 16, 32]}, index=[10,20,30,40,50])  
-  print(df.columns)
+  print(df)
   
+  df["newCol"] = df["numCol"]
+  del df["numCol"]
+  
+  print(df)
+   
 
 
 def floater():

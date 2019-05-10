@@ -7,6 +7,9 @@ and convert them to GI accessions using biodbnet.
 Then, get all their sequences from entrez and write these out in STDOut.
 '''
 
+
+
+
 def main():
   import os.path
   
@@ -16,59 +19,65 @@ def main():
   outL = protname_compare()
   # biogrid_parser()
   
-  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_interactors_combined_31-07-2018.txt"),"w") 
-  
+  # outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_interactors_combined_31-07-2018.txt"),"w") 
+  outF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BTK-interactors-BIOGRID-IntAct-09-05-2019.txt"),"w") 
   for outI in outL:
     outF.write(outI)
     outF.write("\n")
   
   outF.close()
+  
+  print("Finished.")
 
 
 def protname_compare():
   """quick script to compare biogrid interactor list to intact interactor list and return a list of all interactors present in at least one database"""
-  import os.path
+  # import os.path
   
-  intactList = intact_parser()
+  baitName = "BTK"
+  
+  intactList = intact_parser("BTK.txt",baitName)
 
-  intList = [x.lower() for x in intactList] # convert the list to lowercase
+  
+  
+  biogridList = biogrid_parser("BIOGRID-GENE-107160-3.5.172.tab2.txt",baitName)
 
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "biogrid_csk_interactors_31-07-2018.txt"),"rU") 
-  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-113578-3.4.152.tab2-genes.txt"),"rU") 
-  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
-  # This is stripped from the biogrid output file by loading it into excel and copying both columns with genes names in it to a single column in textedit. 
-  # I could write one that parses the biogrid output file but I won't as I'm lazy
   
-  fullList = []
+#   inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "biogrid_csk_interactors_31-07-2018.txt"),"r") 
+#   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "biogrid_csk_interactors_31-07-2018.txt"),"rU") 
+#   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-113578-3.4.152.tab2-genes.txt"),"rU") 
+#   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "biorgid-ptpn22-interactors-08082017.txt"),"rU") # needs rU as it is from mac. 
+#   # This is stripped from the biogrid output file by loading it into excel and copying both columns with genes names in it to a single column in textedit. 
+#   # I could write one that parses the biogrid output file but I won't as I'm lazy
+#   
+#   fullList = []
+#   
+#   for inpLine in inpF:
+#     if inpLine.strip().lower() not in fullList:
+#       fullList.append(inpLine.strip().lower())
   
-  for inpLine in inpF:
-    if inpLine.strip().lower() not in fullList:
-      fullList.append(inpLine.strip().lower())
   
-  for intactI in intList:
-    intactI = intactI.decode("UTF-8")
-    if intactI.lower() not in fullList:
-      fullList.append(intactI.lower())
+  for intactI in intactList:
+    if intactI not in biogridList:
+      
+      biogridList.append(intactI)
   
-  print("---")
-  
-  titleL = []
+  return biogridList
 
-  for outI in fullList:
-    titleL.append(outI.upper())
-    print(outI.upper())
-  return titleL
-
-def biogrid_parser():
+def biogrid_parser(fileName, baitS):
   """open biogrid 2.0 tab format file and extract interactor protein gene IDs. Convert to refseq protein accessions. Return them a list.
   """
   
   import os.path
   from tools import prot_id_converter
   
-  print("processing biogrid file")
+  print("processing BIOgrid file... ", end="")
   
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-117604-3.4.151.tab2.txt"),"r")
+  baitStr = baitS.upper()
+  
+  
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", fileName),"r") # ITK
+  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "BIOGRID-GENE-117604-3.4.151.tab2.txt"),"r")
   
   idL = []
   
@@ -84,14 +93,22 @@ def biogrid_parser():
         idL.append(inpI)
   # print idL
   
-  idList = prot_id_converter(idL, orgnID = "9606", inpDB = "geneid", outDB="refseqproteingi") # convert uniprot ID to refseq accessions or gene names
-  # print idList
-  return idList
+  # idList = prot_id_converter(idL, orgnID = "9606", inpDB = "geneid", outDB="refseqproteingi") # convert uniprot ID to refseq accessions or gene names
+  idList = prot_id_converter(idL, orgnID = "9606", inpDB = "geneid", outDB="genesymbol") # convert uniprot ID to refseq accessions or gene names
   
-def intact_parser(outDataType = "genesymbol"):
+  idNList = []
+  for idI in idList:
+    if idI == "-" or idI.upper() == baitStr: continue
+    else: idNList.append(idI.upper())
+  
+  print("Done.")
+  return idNList
+  
+def intact_parser(fileName, baitS):
   """open ptpn22.txt and extract prey protein uniprot accessions. 
   Convert those to refseq protein accessions.
   Return them as a list.
+  Uses the MI-TAB 2.7 format.
   
   added on 13.10.2016: 
   - check if interaction is actually between the protein of interest and a possible target -- done
@@ -101,88 +118,125 @@ def intact_parser(outDataType = "genesymbol"):
   todo:
   - retrieve both gene name and full protein name
   """
-  from tools import prot_id_converter
+  # from tools import prot_id_converter
   import os.path
   
-  print("processing intact file")
+  print("processing IntAct file... ", end="")
   
-  baitStr = "CSK" # gene name of bait protein. Has to be entered all caps
+  baitStr = baitS.upper() # gene name of bait protein. Has to be entered all caps
   
   # relPath = "ptpn22_ppi_data/ptpn22.txt"
   # relPath = "ptpn22_ppi_data/csk.txt"
   #relPath = "data/ptpn22-intact-mi-tab27-07-08-2017.txt"
   #inpF = file_importer(relPath, "r")
   # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
-  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_intact_31-07-2018.txt"),"r")
-  headerFlag = True
-  preyL = []
-  foundFlagA = False
-  foundFlagB = False
-  for inpLine in inpF:
-    if headerFlag:
-      headerFlag = False
-      continue
-    inpList = inpLine.split("\t")
-    counterN = 0
-    while True: # find gene name in A interactor entry
-      try:
-        if inpList[4].split("|")[counterN].split(":")[1].split("(")[1][:-1] == "gene name": 
-          foundFlagA = True
-          break
-      except IndexError:
-        break
-      
-      counterN += 1
-      
-    if foundFlagA: 
-      geneNameA = inpList[4].split("|")[counterN].split(":")[1].split("(")[0] # gene name A extracted here
-      foundFlagA = False
-    else: geneNameA = "not found"
-    
-    counterN = 0
-    while True: # do the same for B interactor entry
-      try:
-        if inpList[5].split("|")[counterN].split(":")[1].split("(")[1][:-1] == "gene name": 
-          foundFlagB = True
-          break
-      except IndexError:
-        break      
-      
-      counterN += 1
-      
-      if foundFlagB:
-        geneNameB = inpList[5].split("|")[counterN].split(":")[1].split("(")[0] # gene name B extracted here
-        foundFlagB = False
-      else: geneNameB = "not found"
-    
-    if geneNameA.upper() == baitStr or geneNameB.upper() == baitStr: # check if bait protein is one of the interactors
-      inpItem = inpList[1].split(":")[-1]
-      inpSecItem = inpList[0].split(":")[-1]
-      
-      if "-" in inpItem: # remove - symbols
-        inpItem = inpItem[:inpItem.index("-")]
-
-      if "-" in inpSecItem:
-        inpSecItem = inpSecItem[:inpSecItem.index("-")]        
-    
-    else: continue
-    
-    # print inpItem, " ", inpSecItem
-    
-    if "\"" not in inpItem and inpItem != "not found" and len(inpItem)>3 and inpItem not in preyL:
-      preyL.append(inpItem)
-      
-    if "\"" not in inpSecItem and inpSecItem != "not found" and len(inpSecItem)>3 and inpSecItem not in preyL:
-      preyL.append(inpSecItem)      
-      
-
-  inpF.close()
+  # inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "pstpip1", "csk_intact_31-07-2018.txt"),"r")
+  inpF = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", fileName),"r")
   
-  # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
-  idList = prot_id_converter(preyL, "", outDB=outDataType) # convert uniprot ID to refseq accessions or gene names
-  """for idI in idList:
-    print idI"""
-  return idList
+  next(inpF) # skip header
+  
+  intList = []
+  for inpLine in inpF:
+    inpList = inpLine.split("\t")
+    # print(inpList[5])
+    for inpI in inpList[4].split("|"):
+      inpSubL = inpI.split("(")
+      if inpSubL[1][:-1] == "gene name": 
+        currName = inpSubL[0].split(":")[1].upper()
+        if currName not in intList and currName != baitStr: intList.append(currName)
+        
+    for inpI in inpList[5].split("|"):
+      inpSubL = inpI.split("(")
+      if inpSubL[1][:-1] == "gene name": 
+        currName = inpSubL[0].split(":")[1].upper()
+        if currName not in intList and currName != baitStr: intList.append(currName)    
+        
+  print("Done.")
+  return intList
+    
+  
+  
+    
+    
+    
+  
+  
+  
+#   headerFlag = True
+#   preyL = []
+#   foundFlagA = False
+#   foundFlagB = False
+#   for inpLine in inpF:
+#     if headerFlag:
+#       headerFlag = False
+#       continue
+#     inpList = inpLine.split("\t")
+#     # print(inpList)
+#     counterN = 0
+#     while True: # find gene name in A interactor entry
+#       try:
+#         if inpList[4].split("|")[counterN].split(":")[1].split("(")[1][:-1] == "gene name": 
+#           foundFlagA = True
+#           break
+#       except IndexError:
+#         break
+#       
+#       counterN += 1
+#       
+#     if foundFlagA: 
+#       geneNameA = inpList[4].split("|")[counterN].split(":")[1].split("(")[0] # gene name A extracted here
+#       foundFlagA = False
+#     else: geneNameA = "not found"
+#     
+#     counterN = 0
+#     while True: # do the same for B interactor entry
+#       try:
+#         if inpList[5].split("|")[counterN].split(":")[1].split("(")[1][:-1] == "gene name": 
+#           foundFlagB = True
+#           break
+#       except IndexError:
+#         break      
+#       
+#       counterN += 1
+#       
+#       if foundFlagB:
+#         geneNameB = inpList[5].split("|")[counterN].split(":")[1].split("(")[0] # gene name B extracted here
+#         foundFlagB = False
+#       else: geneNameB = "not found"
+#     
+#     if geneNameA.upper() == baitStr or geneNameB.upper() == baitStr: # check if bait protein is one of the interactors
+#       inpItem = inpList[1].split(":")[-1]
+#       inpSecItem = inpList[0].split(":")[-1]
+#       
+#       if "-" in inpItem: # remove - symbols
+#         inpItem = inpItem[:inpItem.index("-")]
+# 
+#       if "-" in inpSecItem:
+#         inpSecItem = inpSecItem[:inpSecItem.index("-")]        
+#     
+#     else: continue
+#     
+#     # print inpItem, " ", inpSecItem
+#     
+#     if "\"" not in inpItem and inpItem != "not found" and len(inpItem)>3 and inpItem not in preyL:
+#       preyL.append(inpItem)
+#       
+#     if "\"" not in inpSecItem and inpSecItem != "not found" and len(inpSecItem)>3 and inpSecItem not in preyL:
+#       preyL.append(inpSecItem)      
+#       
+# 
+#   inpF.close()
+#   
+#   print(preyL)
+#   
+#   # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
+#   idList = prot_id_converter(preyL, "", outDB=outDataType) # convert uniprot ID to refseq accessions or gene names
+#   """for idI in idList:
+#     print idI"""
+# 
+#   idUpList = [x.upper() for x in idList] # convert the list to uppercase .decode("UTF-8")
+#   print(idUpList)
+#   return idUpList
 
 def name_collector():
   """look up protein interactors, download their fasta sequences to extract their names. 

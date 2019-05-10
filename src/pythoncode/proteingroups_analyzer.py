@@ -73,6 +73,7 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   
   import matplotlib.pyplot as plt
   import os
+  from random import randint
   
 
   # from math import log2
@@ -86,16 +87,22 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   # ax.plot.axis([-5.5, 6.5, -0.05, 6.55])
   
   for i, txt in enumerate(plotDF["Gene names"]):
-    if plotDF["Log2 Fold change"].iat[i] < -1 and plotDF["P value"].iat[i] > 2:
+    randNum = randint(0,8)
+    if txt == "Il2ra":
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
-    elif plotDF["Log2 Fold change"].iat[i] > 1 and plotDF["P value"].iat[i] > 2:
+    """elif plotDF["Log2 Fold change"].iat[i] < -1 and plotDF["P value"].iat[i] > 2 and randNum < 3:
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
-    elif plotDF["Log2 Fold change"].iat[i] > 3:
+    elif plotDF["Log2 Fold change"].iat[i] > 1.5 and plotDF["P value"].iat[i] > 2.5 and randNum < 3:
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
-    elif plotDF["Log2 Fold change"].iat[i] < -2:
+    elif plotDF["Log2 Fold change"].iat[i] > 3 and randNum < 3:
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
-    elif plotDF["P value"].iat[i] > 3:
+    elif plotDF["Log2 Fold change"].iat[i] < -2 and randNum < 3:
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["P value"].iat[i] > 3 and randNum < 3:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
+    elif plotDF["P value"].iat[i] > 5:
+      ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))"""
+    
   
   i = 1
   while os.path.exists(os.path.join(outFolder, (outFigName + str(i) + ".png"))):
@@ -104,7 +111,7 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   
   plt.show# (block = False)
 
-def venn_drawer(inpDict, outFolder):
+def venn_drawer(inpDict, outFolder, vennFlag = False):
   """draw a venn diagram using the input dictionary"""
   import matplotlib_venn
   import matplotlib.pyplot as plt
@@ -203,6 +210,31 @@ def venn_drawer(inpDict, outFolder):
   # print(inpDict.keys())
   # matplotlib_venn.venn2([setList[0],setList[1]], ("".join(setLabel[0][0].split("-")[:-1]),"".join(setLabel[1][0].split("-")[:-1])))
   matplotlib_venn.venn2([setList[0],setList[1]], (inpDict.keys()))
+  if vennFlag:
+    print("writing venn protein names out to file")
+    outF = open("/home/mate/code/ed/src/data/cav1ko/processed/vennlists_cav1ko_vs_wt_2.txt","w")
+    listList0 = list(setList[0])
+    listList1 = list(setList[1])
+    if len(listList0)>=len(listList1):
+      for i in range(len(listList0)):
+        outF.write(listList0[i])
+        outF.write("\t")
+        try:
+          outF.write(listList1[i])
+        except IndexError:
+          outF.write("")
+        outF.write("\n")
+    else:
+      for i in range(len(listList1)):
+        outF.write(listList1[i])
+        outF.write("\t")
+        try:
+          outF.write(listList0[i])
+        except IndexError:
+          outF.write("")
+        outF.write("\n")
+  
+  outF.close()
   # matplotlib_venn.venn2([setList[0],setList[1]], set_labels=("OT1-IL7","OT1 + OT1 Cav1KO"))
   print(len(setList[0]))
   print(len(setList[1]))
@@ -329,6 +361,9 @@ def file_combiner(cfgFileName):
   normName = ""
   renameDict = {}
   onlyAlwaysDetected = False
+  minPeptideCount = 0
+  minSpecPeptideCount = 0
+  minPepGroupCount = 0
   histBool = False
   pValueDist = False
   vennBool = False
@@ -377,6 +412,33 @@ def file_combiner(cfgFileName):
           elif newLine.startswith("Heatmap")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": heatmapBool = True
           elif newLine.startswith("Paired T test")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": pairedBool = True
           elif newLine.startswith("onlyAlwaysDetected")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": onlyAlwaysDetected = True
+          elif newLine.startswith("Minimum peptide count:"):
+            minPepInput = newLine.strip(" \n").split(":")[-1].strip(" ")
+            try:
+              minPeptideCount = int(minPepInput)
+            except ValueError:
+              print("for Minimum peptide count a number should be given, instead of " + minPepInput)
+              print("please edit the config file. You can set this to 0 to diasable it.")
+              sys.exit(0)
+          
+          elif newLine.startswith("Special peptide count"):
+            minSpecPepInput = newLine.strip(" \n").split(":")[-1].strip(" ")
+            try:
+              minSpecPeptideCount = int(minSpecPepInput)
+            except ValueError:
+              print("for Special peptide count a number should be given, instead of " + minSpecPepInput)
+              print("please edit the config file. You can set this to 0 to diasable it.")
+              sys.exit(0)        
+              
+          elif newLine.startswith("Minimum peptide count per group"):
+            minPepGroupInput = newLine.strip(" \n").split(":")[-1].strip(" ")
+            try:
+              minPepGroupCount = int(minPepGroupInput)
+            except ValueError:
+              print("for Special peptide count a number should be given, instead of " + minSpecPepInput)
+              print("please edit the config file. You can set this to 0 to diasable it.")
+              sys.exit(0)     
+          
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
           elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
           elif newLine.startswith("Background threshold") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": backgroundBool = True
@@ -451,6 +513,7 @@ def file_combiner(cfgFileName):
               subLineCount += 1
               if subLineCount == 10: 
                 print("something terrible has happened! more than 10 samples are found in a group")
+                print(groupDict)
                 sys.exit(0)
               if newLine == "\n": continue
               if groupDictFlag: # create a dict with group name as keyword and members of the group as values in a list 
@@ -667,7 +730,12 @@ def file_combiner(cfgFileName):
           
           tempRearrangedCol.append(tempColI)
           break
-      tempColL.remove(tempColI)
+      try:
+        tempColL.remove(tempColI)
+      except ValueError:
+        print("the column name " + tempColI + " was not found in the dataset.")
+        print("check the exact spelling in the cfg file and try again.")
+        sys.exit(0)
     
     rearrangedCols += tempRearrangedCol
       
@@ -735,7 +803,8 @@ def file_combiner(cfgFileName):
       if groupName in groupNumDict: 
         groupNumDict[groupName].append(resDF.columns.get_loc("LFQ intensity " + sampleName) + 1)
       else: groupNumDict[groupName] = [resDF.columns.get_loc("LFQ intensity " + sampleName) + 1]
-  # print(groupNumDict)
+#   print(groupDict)
+#   print(renameDict)
   
   # l = 0
 
@@ -757,6 +826,8 @@ def file_combiner(cfgFileName):
   print("processing entries")
   rowCountNum = 0
   degreeFlag = True
+  
+  #############################################################################################
   for rowSeries in resDF.itertuples():
     rowCountNum += 1
     # print(rowCountNum)
@@ -793,7 +864,7 @@ def file_combiner(cfgFileName):
           try:
             finDF.drop(rowSeries.Index, inplace=True)
           except ValueError:
-            # print(rowSeries[2])
+            print(rowSeries[2])
             pass
           continue
       
@@ -813,7 +884,14 @@ def file_combiner(cfgFileName):
     discardBool = False
     changeBool = False
     
-    if zeroesBool: 
+    if minPeptideCount > 0 or minSpecPeptideCount > 0: 
+      print(minPeptideCount)
+      if not minPeptides(minPeptideCount, minSpecPeptideCount, rowSeries,colL): discardBool = True # check for minimum number of specified unique peptides
+      
+    if minPepGroupCount > 0 and not discardBool:
+      if not min_peptides_group(groupNumDict,minPepGroupCount, rowSeries): discardBool = True
+    
+    if zeroesBool and not discardBool: 
       rowSeries, discardBool, changeBool = zero_remover(rowSeries,groupNumDict)
 
     if discardBool: 
@@ -962,6 +1040,7 @@ def file_combiner(cfgFileName):
     volcanoDF["Gene names"] = finDF["Gene names"]
     
     # print(volcanoDF)
+    # for p in range(3):
     volcano_plot_for_analyzer(volcanoDF,outputFolder)
     # volcano_plot_for_analyzer(volcanoDF["Log2 Fold change"],volcanoDF["P value"],volcanoDF["Gene name"],outputFolder)
     
@@ -1085,6 +1164,7 @@ def zero_remover(rowWithZeroes, posDict):
   from copy import deepcopy
   import pandas as pd
   
+  # if "Cav1" in rowWithZeroes: print(rowWithZeroes)
   zeroDict = {}
   for patchGroup in posDict:
     for patchI in posDict[patchGroup]:
@@ -2472,7 +2552,72 @@ def crapome_parser(cfgFileName, protFileName, crapFileName):
   combinedDF.to_csv(outF)
 
   print("results written to file")
+  
+def minPeptides(countN, fancyCountN, protSeries, columnL):
+  """returns true or false. If the protseries has the required minimum number of unique peptides in every row,
+  then it returns true. Else false """
+  
+  #   Pandas(Index='Q9CPX6', _1='Atg3', _2='Ubiquitin-like-conjugating enzyme ATG3', _3='2', _4='2', _5=0, _6=0, _7='2', _8='2', _9=0, _10=0, _11='10039000', _12='26676000', _13=0, _14=0)
+  #   Pandas(Index='Q9CPY7', _1='Lap3', _2='Cytosol aminopeptidase', _3='3', _4='3', _5='5', _6='5', _7='3', _8='3', _9='5', _10='5', _11='34967000', _12='22258000', _13='92727000', _14='95797000')
+  #   Pandas(Index='Q9CQ10', _1='Chmp3', _2='Charged multivesicular body protein 3', _3='1', _4='1', _5='5', _6='5', _7='1', _8='1', _9='5', _10='5', _11='4970000', _12='1681700', _13='79799000', _14='69307000')
+  
+  posL = []
+  for k in range(len(columnL)):
+    colI = columnL[k]
+    if colI.startswith("Razor"): posL.append(k)
+  
+  failCount = 0
+  for kItem in posL:
+    if int(protSeries[kItem]) < fancyCountN: failCount += 1
+    if int(protSeries[kItem]) < countN: return False
+  
+  if failCount > 1: return False
+  else: return True
+  
+def min_peptides_group(groupNumDict, minPepGroupCount, rowSeries):
+  """check if minimum number of peptides are present in at least one group"""
+  
+  passedFlag = False
+  blahFlag = False
+  dataLen = 3
+  if rowSeries[1] == "Caveolin-1": 
+    print(rowSeries)
+    blahFlag = True
+    
+  
+  for groupN in groupNumDict.keys():
+    dataLen += len(groupN)
+  
+  
+  for groupN in groupNumDict.keys():
+    lowCount = 0
+    for l in range(len(groupNumDict[groupN])): #@Unusedvariable
+      if blahFlag: print(lowCount)
+      if int(rowSeries[dataLen]) < minPepGroupCount: lowCount += 1
+      dataLen += 1
+    
+    if blahFlag: 
+      print("---")
+      print(lowCount)
+      print(len(groupNumDict[groupN]))
+    if lowCount <= (len(groupNumDict[groupN])) - 2:
+      passedFlag = True
+      break
+      
+  if blahFlag:
+    print(passedFlag)
+    print(groupNumDict)
+    blahFlag = False
+  return passedFlag
+    
+    
 
+    
+    
+
+    
+  
+  
   
 if __name__ == "__main__":
   main()

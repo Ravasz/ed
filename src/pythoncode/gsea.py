@@ -236,9 +236,20 @@ def single_gsea(dataFrame, gene_sets, outdir="ssGSEA_", sample_norm_method='rank
   # gseaplot(resO.ranking, term="Vesiclepedia_1007", ofname = "/home/mate/code/ed/src/data/cav1ko/processed/ssgseatest-" + "Vesiclepedia_1007" +".png", **resO.results["Vesiclepedia_1007"])
   
   print(resO.resultsOnSamples)
-  heatmap(resO.res2d, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/ssgseaheatmap.png", figsize = (20,40), fontN = 9)
+  heatmap(resO.res2d, ofname = "/home/mate/code/ed/src/data/cav1ko/processed/ssgseaheatmap2.png", figsize = (20,40), fontN = 9)
   
+def gmt_file_converter():
+  """remove _homo sapiens_hsaxxx tags from group names to get shorter descriptions"""  
   
+  with open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi.gmt","r") as inF:
+    with open("/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi_short.gmt","w") as outF:
+      for inLine in inF:
+        inL = inLine.split("_Homo sapiens_")
+        if len(inL) > 1:
+          outF.write(inL[0])
+          outF.write(inL[1][8:])
+        else: outF.write(inLine)
+        
 
 def main_gsea_function():  
   """call all the other GSEA functions and run the whole pipeline to perform the analysis"""
@@ -256,7 +267,9 @@ def main_gsea_function():
   
   print(clsList)
   
-  geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi.gmt"
+  gmt_file_converter()
+  
+  geneSetName = "/home/mate/code/ed/src/data/cav1ko/KEGG_2016_EV_Vesi_short.gmt"
   
   single_gsea(dataFrame = datasetDF, gene_sets = geneSetName, outdir = "/home/mate/code/ed/src/data/cav1ko/processed/gsea/")
     

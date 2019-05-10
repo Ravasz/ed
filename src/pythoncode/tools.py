@@ -190,16 +190,16 @@ def uniprot_dicter():
   """create dict of all known uniprot mouse proteins and return dict 
   with keys as uniprot IDs and values as protein sequences"""
   
-  relPath = "datafiles/mouse_proteome.fasta"
+  relPath = "../data/protein_lists/uniprot-proteome_3AUP000000589.fasta"
   
   inpF = file_importer(relPath)
   geneD = {}
   
   for inpLine in inpF:
-    if inpLine[0] == ">":
-      geneKey = inpLine.split("|")[1]
+    if inpLine[0] == ">": geneKey = inpLine.split("|")[1]
     else:
-      geneD[geneKey] = inpLine
+      if geneKey in geneD: geneD[geneKey] += inpLine.rstrip()
+      else: geneD[geneKey] = inpLine.rstrip()
   return geneD
 
 def protein_groups_slicer():
@@ -237,15 +237,42 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   outDB is output database type, use "geneid" for Gene ID or "genbankproteinaccession" or "genbankproteingi" or "refseqproteingi" for those
  
   """
+  
   import urllib.request, json
-  urlStr = "http://biodbnet.abcc.ncifcrf.gov/webServices/rest.php/biodbnetRestApi.json?method=db2db&format=row&input=" + inpDB + "&inputValues=" + ",".join(protList) + "&outputs=" + outDB + "&taxonId=" + orgnID  
+  import sys
+  
+  fullJason = []
+  cutList = []
+  countNum = 0
   print("connecting to biodbnet. This might take a while...")
-  uParsed = urllib.request.urlopen(urlStr)  
-  print("connection successful")
-  responseJson = uParsed.read()
-  print(responseJson)
-  # print(".", end="")
-  parsedJson = json.loads(responseJson.decode('utf-8'))
+  for protI in protList:
+    cutList.append(protI)
+    countNum += 1
+    if countNum == 190:
+      urlStr = "http://biodbnet.abcc.ncifcrf.gov/webServices/rest.php/biodbnetRestApi.json?method=db2db&format=row&input=" + inpDB + "&inputValues=" + ",".join(cutList) + "&outputs=" + outDB + "&taxonId=" + orgnID  
+      uParsed = urllib.request.urlopen(urlStr)  
+
+      responseJson = uParsed.read()
+      cutList = []
+      countNum = 0
+      # print(responseJson)
+      print(".", end="")
+      parsedJson = json.loads(responseJson.decode('utf-8'))
+      fullJason.extend(parsedJson)
+  
+  if countNum > 0: # parse the last, smaller batch
+      urlStr = "http://biodbnet.abcc.ncifcrf.gov/webServices/rest.php/biodbnetRestApi.json?method=db2db&format=row&input=" + inpDB + "&inputValues=" + ",".join(cutList) + "&outputs=" + outDB + "&taxonId=" + orgnID  
+      uParsed = urllib.request.urlopen(urlStr)  
+
+      responseJson = uParsed.read()
+      cutList = []
+      countNum = 0
+      # print(responseJson)
+      print(".", end="")
+      parsedJson = json.loads(responseJson.decode('utf-8'))
+      fullJason.extend(parsedJson)    
+  
+  print("\nconnection successful")
   # print parsedJson
   # parsedJson = [{u'Gene ID': u'54196', u'InputValue': u'Q8CCS6'}, {u'Gene ID': u'99982', u'InputValue': u'Q6ZQ88'}]
   # parsedJson = [{u'GenBank Protein Accession': u'BAC27741//Q8CCS6//EDL36322//AAH55866//NP_062275//XP_006519335//AAC00210////EDL36323', u'InputValue': u'Q8CCS6'}, {u'GenBank Protein Accession': u'AAH19417//XP_006539394//XP_006539393//NP_598633//AAH59885//CBY79415//CBY88367////XP_006539392//EDL29935//Q6ZQ88//BAC97980', u'InputValue': u'Q6ZQ88'}]
@@ -255,20 +282,24 @@ def prot_id_converter(protList, orgnID = "10090", inpDB = "uniprotaccession", ou
   # parsedJson = [{u'KEGG Gene ID': u'mmu:16656', u'InputValue': u'A2A884'}, {u'KEGG Gene ID': u'mmu:11737', u'InputValue': u'O35381'}, {u'KEGG Gene ID': u'mmu:19763', u'InputValue': u'O35730'}]
   # parsedJson = [{u'InputValue': u'Q5SWU9', u'Gene Symbol': u'Acaca'}, {u'InputValue': u'Q8VDD5', u'Gene Symbol': u'Myh9'}, {u'InputValue': u'Q3T9S7', u'Gene Symbol': u'Pcx'}, {u'InputValue': u'B2RRX1', u'Gene Symbol': u'Actb'}, {u'InputValue': u'Q71LX8', u'Gene Symbol': u'Hsp90ab1'}, {u'InputValue': u'B2RRE2', u'Gene Symbol': u'Myo18a'}, {u'InputValue': u'Q3U2W2', u'Gene Symbol': u'Mybbp1a'}, {u'InputValue': u'Q3TII3', u'Gene Symbol': u'Eef1a1'}, {u'InputValue': u'P99024', u'Gene Symbol': u'Tubb5'}, {u'InputValue': u'E9QAS3', u'Gene Symbol': u'Ptpn22'}, {u'InputValue': u'Q99MR8', u'Gene Symbol': u'Mccc1'}, {u'InputValue': u'Q3THE2', u'Gene Symbol': u'Myl12b'}, {u'InputValue': u'D3YZ62', u'Gene Symbol': u'Myo5a'}, {u'InputValue': u'Q3UGC8', u'Gene Symbol': u'Pcca'}, {u'InputValue': u'Q6S385', u'Gene Symbol': u'Plec'}, {u'InputValue': u'B2RTP7', u'Gene Symbol': u'Krt2'}, {u'InputValue': u'B1AQ77', u'Gene Symbol': u'Krt15'}, {u'InputValue': u'D3Z6I8', u'Gene Symbol': u'Tpm3'}, {u'InputValue': u'B2RTM0', u'Gene Symbol': u'Hist2h4'}, {u'InputValue': u'Q8K0Z5', u'Gene Symbol': u'Tpm3'}, {u'InputValue': u'Q3TNH0', u'Gene Symbol': u'Tmpo'}, {u'InputValue': u'Q3TIG9', u'Gene Symbol': u'Myl6'}, {u'InputValue': u'D2KHZ9', u'Gene Symbol': u'GAPDH'}, {u'InputValue': u'Q6P5D8', u'Gene Symbol': u'Smchd1'}, {u'InputValue': u'Q4FZG4', u'Gene Symbol': u'Flna'}, {u'InputValue': u'F1DGF6', u'Gene Symbol': u'Prkcd'}, {u'InputValue': u'Q3TFG3', u'Gene Symbol': u'Eif4a1'}, {u'InputValue': u'B2RPX1', u'Gene Symbol': u'Iqcd'}, {u'InputValue': u'Q8BQ35', u'Gene Symbol': u'Sptbn1'}, {u'InputValue': u'E0CZ27', u'Gene Symbol': u'H3f3a'}, {u'InputValue': u'Q9CR57', u'Gene Symbol': u'Rpl14'}, {u'InputValue': u'Q0VG47', u'Gene Symbol': u'Hnrnpa3'}, {u'InputValue': u'Q8C553', u'Gene Symbol': u'Lmnb1'}, {u'InputValue': u'Q3T9U9', u'Gene Symbol': u'Rpl3'}, {u'InputValue': u'Q3KQJ4', u'Gene Symbol': u'Hspa8'}, {u'InputValue': u'Q3U7D2', u'Gene Symbol': u'Rpl15'}, {u'InputValue': u'A0PJE6', u'Gene Symbol': u'Pccb'}, {u'InputValue': u'Q68FG3', u'Gene Symbol': u'Spty2d1'}, {u'InputValue': u'Q0VB76', u'Gene Symbol': u'Gzmc'}, {u'InputValue': u'Q32P04', u'Gene Symbol': u'Krt5'}, {u'InputValue': u'D3Z6F5', u'Gene Symbol': u'Atp5a1'}, {u'InputValue': u'Q3U0I3', u'Gene Symbol': u'Cct3'}, {u'InputValue': u'Q3TJZ1', u'Gene Symbol': u'Eef2'}, {u'InputValue': u'Q3UI57', u'Gene Symbol': u'Mcm3'}]
 
-  if "GenBank Protein Accession" in parsedJson[0]:
-    return accession_wrangler(parsedJson)
-  elif "GenBank Protein GI" in parsedJson[0]:
-    return protein_gi_wrangler(parsedJson)
-  elif "RefSeq Protein GI" in parsedJson[0]:
-    return refseq_gi_wrangler(parsedJson)
-  elif "UniProt Accession" in parsedJson[0]:
-    return uniprot_wrangler(parsedJson)
-  elif "KEGG Gene ID" in parsedJson[0]:
-    return kegg_wrangler(parsedJson)
-  elif "Gene Symbol" in parsedJson[0]:
-    return gene_symbol_wrangler(parsedJson)
-  elif "HGNC ID" in parsedJson[0]:
-    return parsedJson
+  if len(fullJason) == 0:
+    print("No result returned. Site may be down or query may be incomplete")
+    sys.exit(0)
+  
+  if "GenBank Protein Accession" in fullJason[0]:
+    return accession_wrangler(fullJason)
+  elif "GenBank Protein GI" in fullJason[0]:
+    return protein_gi_wrangler(fullJason)
+  elif "RefSeq Protein GI" in fullJason[0]:
+    return refseq_gi_wrangler(fullJason)
+  elif "UniProt Accession" in fullJason[0]:
+    return uniprot_wrangler(fullJason)
+  elif "KEGG Gene ID" in fullJason[0]:
+    return kegg_wrangler(fullJason)
+  elif "Gene Symbol" in fullJason[0]:
+    return gene_symbol_wrangler(fullJason)
+  elif "HGNC ID" in fullJason[0]:
+    return fullJason
                          
   else: 
     print("was expecting Genbank protein accessions, genbank protein GIs, Uniprot accessions or RefSeq protein GIs, or HGNC IDs, but got something else:")
@@ -332,8 +363,8 @@ def gene_symbol_wrangler(inpAcc):
   resL = []
   for inpAccD in inpAcc:
     queryI = inpAccD["Gene Symbol"]
-    curQuery = queryI.encode("ascii","ignore")
-    resL.append(curQuery)    
+    # curQuery = queryI.encode("ascii","ignore")
+    resL.append(queryI)    
 
   return resL
   
@@ -562,7 +593,7 @@ def biogrid_parser():
   inpF.close()
   return interactorList
 
-def intact_parser():
+def intact_parser(inFileIntact, InfileBiogrid, outFile):
   """open ptpn22.txt and extract prey protein uniprot accessions. 
   Convert those to refseq protein accessions.
   Return them as a list.
@@ -580,15 +611,15 @@ def intact_parser():
   
   import os.path
   
-  baitStr = "PTPN22" # gene name of bait protein. Has to be entered all caps
+  baitStr = "CAV1" # gene name of bait protein. Has to be entered all caps
   
   # relPath = "ptpn22_ppi_data/ptpn22.txt"
   #relPath = "datafiles/ptpn22_interactions_intact.txt"
   #inpF = file_importer(relPath, "r")
+  # inFilePath = "/home/mate/code/ed/src/data/ptpn22-intact-mi-tab27-07-08-2017.txt"
   
-  inFolder = "/home/mate/code/ed/src/data/"
   
-  inpF = open(os.path.join(inFolder, "ptpn22-intact-mi-tab27-07-08-2017.txt"),"r")
+  inpF = open(inFileIntact,"r")
   headerFlag = True
   preyL = []
   nfCount = 0
@@ -678,34 +709,37 @@ def intact_parser():
     pass
       
   
-  print(preyL)
-  for preyI in preyL:
-    print(preyI)
+#   print(preyL)
+#   for preyI in preyL:
+#     print(preyI)
     
-  biogInp = open(os.path.join(inFolder, "biorgid-ptpn22-interactors-08082017.txt"),"r")
-  biogList = []
+  biogInp = open(InfileBiogrid,"r")
+  bioL = []
+  next(biogInp)
   for bioLine in biogInp:
     # print(bioLine.upper())
-    if bioLine.upper().rstrip() not in biogList:
-      # print(biogList)
-      biogList.append(bioLine.rstrip().upper())
+    bioL.append(bioLine.split("\t")[7])
+    bioL.append(bioLine.split("\t")[8])
+    
+    for bioItem in bioL:
+      if bioItem.upper() != baitStr and bioItem.upper() not in preyL:
+        preyL.append(bioItem.upper())
+    
+    bioL = []
+  
   biogInp.close()
   
-  outF = open(os.path.join(inFolder, "ptpn22-interactors-biogrid-intact-28-11-2017.txt"),"w")
+  outF = open(outFile,"w")
   
-  for biogI in biogList:
+  for biogI in preyL:
     #print(repr(biogI))
     outF.write(biogI + "\n")
-  
-  for preyI in preyL:
-    #print(repr(preyI))
-    if preyI not in biogList:
-      outF.write(preyI + "\n")
   
   
   
   # idList = prot_id_converter(preyL, "", outDB="refseqproteingi") # convert uniprot ID to refseq accessions
   # return idList
+  outF.close
       
   
 if __name__ == "__main__":
