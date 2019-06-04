@@ -73,7 +73,7 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   
   import matplotlib.pyplot as plt
   import os
-  from random import randint
+  # from random import randint
   
 
   # from math import log2
@@ -87,7 +87,7 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   # ax.plot.axis([-5.5, 6.5, -0.05, 6.55])
   
   for i, txt in enumerate(plotDF["Gene names"]):
-    randNum = randint(0,8)
+    # randNum = randint(0,8)
     if txt == "Il2ra":
       ax.annotate(txt, (plotDF["Log2 Fold change"].iat[i],plotDF["P value"].iat[i]))
     """elif plotDF["Log2 Fold change"].iat[i] < -1 and plotDF["P value"].iat[i] > 2 and randNum < 3:
@@ -1083,7 +1083,7 @@ def file_combiner(cfgFileName):
     
     
     sns.set(font_scale=0.5)
-    fig, ax = plt.subplots(figsize=(5,15)) 
+    fig, ax = plt.subplots(figsize=(5,15)) #@UnusedVariable
     heatmapO = sns.heatmap(heatDF, annot=False, ax=ax, cmap = "Blues")
     heatmapFig = heatmapO.get_figure()
     heatmapFig.savefig("/home/mate/code/ed/src/data/cav1ko/processed/heatmap.png")

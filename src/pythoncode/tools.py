@@ -8,6 +8,8 @@ def main():
   print("you are in protein tools")
   print("you should really call functions from outside this script though")
   
+  go_term_advanced_lookup("E9Q7E2")
+  
   # testL = ["NP_055136"]
   
   # print prot_id_converter(testL, inpDB = "refseqproteinaccession", outDB = "genesymbol", orgnID="9606")  
@@ -541,14 +543,38 @@ def go_term_advanced_lookup(protID):
   idList = [x[:x.find(".")] for x in listdir("/home/mate/workspace/katamari/src/ed/datafiles/go_terms")]
   
   if protID not in idList: 
+
+    import requests, sys, json
     
-    import urllib.request #, urllib.parse, urllib.error
-  
-    txtS = urllib.request.urlopen("http://www.ebi.ac.uk/QuickGO/GAnnotation?protein="+protID+"&db=UniProtKB&format=tsv")
-    # print txtS.read()
+    requestURL = "https://www.ebi.ac.uk/QuickGO/services/annotation/search?includeFields=goName&geneProductId=" + protID
+    
+    r = requests.get(requestURL, headers={ "Accept" : "application/json"})
+    
+    if not r.ok:
+      r.raise_for_status()
+      sys.exit()
+    
+    responseBody = json.loads(r.text)
+#     print(responseBody)
+#     print(responseBody.keys())
     with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+protID+".txt","w") as outF:
-      for fileLine in txtS:
-        outF.write(fileLine)
+      outF.write("DB\tID\tSplice\tSymbol\tTaxon\tQualifier\tGO ID\tGO Name\tReference\tEvidence\tWith\tAspect\tDate\tSource\n")
+      for responseItem in responseBody["results"]: 
+        outF.write(responseItem["geneProductId"].split(":")[0] + "\t")
+        outF.write(responseItem["geneProductId"].split(":")[1] + "\t")
+        outF.write("-\t")
+        outF.write(responseItem["symbol"] + "\t")
+        outF.write(str(responseItem["taxonId"]) + "\t")
+        outF.write("-\t")
+        outF.write(responseItem["goId"] + "\t")
+        outF.write(responseItem["goName"] + "\t")
+        outF.write(responseItem["reference"] + "\t")
+        outF.write(responseItem["goEvidence"] + "\t")
+        outF.write("-\t")
+        outF.write(responseItem["goAspect"] + "\t")
+        outF.write(responseItem["date"] + "\t")
+        outF.write(responseItem["assignedBy"] + "\n")
+        
       
 def go_term_lookup(protID):
   """take a uniprot id and rpint out any GO terms associated with it using quickGO
