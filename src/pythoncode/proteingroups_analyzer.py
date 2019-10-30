@@ -18,11 +18,13 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
-  cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
+  # cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
+  # cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_julia_t0.cfg"
+  cfgFile = "/home/mate/code/ed/src/data/ptpn22/proteingroups_analyzer_params_ptpn22.cfg"
   # file_analyzer(cfgFile)
-  file_combiner(cfgFile)
+  # file_combiner(cfgFile)
   # crapome_parser(cfgFile, "proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_26-11-2018_combined_2019-01-07-10.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
-  
+  crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_14-08-2019_combined_2019-08-19-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
 
 def file_analyzer(cfgFile):
@@ -373,6 +375,8 @@ def file_combiner(cfgFileName):
   zeroesBool = False
   backgroundBool = False
   rankBool = False
+  maxquantVersion = 1.5
+  singleGroupFlag = False
   
   # with open("proteingroups_analyzer_params.cfg","r") as cfgFile:
   with open(cfgFileName,"r") as cfgFile:
@@ -443,6 +447,7 @@ def file_combiner(cfgFileName):
           elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
           elif newLine.startswith("Background threshold") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": backgroundBool = True
           elif newLine.startswith("Rank list") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": rankBool = True
+          elif newLine.startswith("Maxquant version"): maxquantVersion = float(newLine.split(":")[1].strip(" \n")[:3]) #get maxquant version, like 1.5 or 1.6. different versions use slightly different formatting
         continue
       
       elif cfgLine == "<Outputfolder>\n": # collect output folder here
@@ -534,10 +539,16 @@ def file_combiner(cfgFileName):
     print("Sorry, can only compare 2 groups for the time being.")
     sys.exit(0)    
 
-  elif len(groupDict) < 2:
-    print("Need to have at least 2 groups to compare them")
+  elif len(groupDict) == 2: pass # this is the recommended group number. do nothing and continue
+  
+  elif len(groupDict) == 1:
+    print("Need to have at least 2 groups to compare them. Proceeding with formatting one group.")    
+    singleGroupFlag = True
+  
+  else:
+    print("No groups found")
     print(groupDict)
-    sys.exit(0)                  
+    sys.exit(0)           
   
   groupNumD = {}
   for k in groupList:
@@ -578,7 +589,14 @@ def file_combiner(cfgFileName):
     # print currGroupL
     
     colL = [] # list of columns that are to be collected
-    colL += ["Majority protein IDs","Protein names","Gene names"]
+    
+    if 1.49 < maxquantVersion < 1.51: colL += ["Majority protein IDs","Protein names","Gene names"]
+    elif 1.59 < maxquantVersion < 1.61: colL += ["Majority protein IDs", 'Fasta headers']
+    else:
+      print("did not recognize Maxquant version. Was expecting 1.5 or 1.6. Instead I got:")
+      print(maxquantVersion)
+      sys.exit(0)
+      
     for sI in currGroupL:
       colL.append("Peptides "+ sI)
     for sI in currGroupL:
@@ -593,14 +611,18 @@ def file_combiner(cfgFileName):
       headerFlag = True
       neededColIndexes = []
       neededColNames = []
+      fastaPos = 0
       fileCount += 1
+      conFlag = False
           
       for inpLine in inpF:
         cN += 1
         if headerFlag:
           headerFlag = False
           inpItem = inpLine.rstrip("\r\n").split("\t")
+          # print(inpItem)
           for inpI in inpItem: # collect the positions and names of columns that are to be copied into the results file
+            if inpI == 'Fasta headers': fastaPos = inpItem.index(inpI)
             if inpI in colL:
               neededColIndexes.append(inpItem.index(inpI))
               neededColNames.append(inpI)
@@ -608,7 +630,21 @@ def file_combiner(cfgFileName):
         
         inpLine = inpLine.rstrip("\r\n")
         inpItem = inpLine.split("\t")
-        geneL = inpItem[neededColIndexes[0]].split(";")
+        # print(inpItem)
+        if 1.49 < maxquantVersion < 1.51: geneL = inpItem[neededColIndexes[0]].split(";")
+        elif 1.59 < maxquantVersion < 1.61: 
+          geneLLong = inpItem[neededColIndexes[0]].split(";")
+          geneL = []
+          for u in geneLLong: 
+            if "REV__" in u or "CON__" in u: 
+              conFlag = True
+              continue
+            else: geneL.append(u.split("|")[1])
+
+        if conFlag:
+          conFlag = False
+          continue
+        # print(geneL)
         lenS = len(geneL[0])
         curGene = geneL[0]
         for geneI in geneL: # find gene name with the shortest length
@@ -622,11 +658,28 @@ def file_combiner(cfgFileName):
           curGene = curGene[:-2]
         elif curGene[-3] == "-":
           curGene = curGene[:-3]
-
-        workingL = []  
-        for neededN in neededColIndexes:
-          workingL.append(inpItem[neededN])
-        
+          
+        if 1.49 < maxquantVersion < 1.51:
+          workingL = []  
+          for neededN in neededColIndexes:
+            workingL.append(inpItem[neededN])
+        elif 1.59 < maxquantVersion < 1.61: 
+          # print(neededColIndexes)
+          workingL = []  
+          for neededN in neededColIndexes:
+            workingL.append(inpItem[neededN])
+            
+          # print(inpItem[fastaPos])
+          geneNameL = inpItem[fastaPos].split("GN=") # get protein name and gene name from fasta header
+          try:
+            geneNameS = geneNameL[1].split(" PE=")[0]
+          except IndexError:
+            geneNameS = inpItem[fastaPos].split("|")[2].split("_")[0].title()
+          
+          protNameS = inpItem[fastaPos].split("|")[2]
+          protNameS = protNameS[protNameS.index(" "): protNameS.index(" OS=")]
+          workingL.insert(1,geneNameS)
+          workingL.insert(1,protNameS)
         # print(workingL)
         try:
           if workingL[1] == "": workingL[1] = " ".join(inpItem[7].split("|")[2].split("OS")[0].split(" ")[1:])  # add fasta header if full protein name is missing with this lovely one-liner
@@ -646,7 +699,7 @@ def file_combiner(cfgFileName):
           # print "no protein name found. adding the uniprot ID."
           uniqueL[2] = curGene
         
-        # print uniqueL
+        # print(uniqueL)
 
         if curGene in outDict: # handle duplicate protein entries and merge them together
           print("%s is duplicate" % curGene)
@@ -679,7 +732,10 @@ def file_combiner(cfgFileName):
     # print(outDF)
     del outDF[0]
     # print(outDF)
-    outDF.columns = neededColNames[1:] # replace the column names of 1,2.3 to the appropriate header names
+    if 1.49 < maxquantVersion < 1.51: outDF.columns = neededColNames[1:] # replace the column names of 1,2,3 to the appropriate header names
+    elif 1.59 < maxquantVersion < 1.61: outDF.columns = ["Protein names", "Gene names"] + neededColNames[1:]
+    # print(outDF)
+    
     outDF.index.name = neededColNames[0]
     outDF.rename(columns=lambda x: x + "-" + str(fileCount), inplace=True) # add a counter to the end of the column names so we can know which file they are from
     outDF.rename({"Gene names-" + str(fileCount):"Gene names","Protein names-" + str(fileCount):"Protein names" },axis='columns', inplace=True) # protein names and gene names are unified below so they need to have the same column name
@@ -705,13 +761,14 @@ def file_combiner(cfgFileName):
   # rearrange column names to make it moar pretty
 
   colNames = resDF.columns.tolist() 
+  print(colNames)
   
   rearrangedCols = colNames[:2]
   colTypesL = ["Peptides","Razor + unique peptides","LFQ intensity"]
   tempColL = []
   tempRearrangedCol = []
   fullGroupList = []
-  for sampleGroupKey, sampleGroupValue in groupDict.items(): # add together all names into a single list #@UnusedVariable
+  for sampleGroupValue in groupDict.values(): # add together all names into a single list 
     for sampleNameI in sampleGroupValue:
       fullGroupList.append(sampleNameI)
       
@@ -730,6 +787,9 @@ def file_combiner(cfgFileName):
           
           tempRearrangedCol.append(tempColI)
           break
+#       print("tempColL")
+#       print(tempColL)
+#       print(tempColI)
       try:
         tempColL.remove(tempColI)
       except ValueError:
@@ -809,11 +869,13 @@ def file_combiner(cfgFileName):
   # l = 0
 
   finDF = resDF.copy()
-  finDF["P value"] = 0.0
-  finDF["Log2 Fold change"] = 0.0
+  if not singleGroupFlag:
+    finDF["P value"] = 0.0
+    finDF["Log2 Fold change"] = 0.0
   if rankBool:
     finDF["Avg1"] = 0.0
-    finDF["Avg2"] = 0.0
+    if not singleGroupFlag:
+      finDF["Avg2"] = 0.0
 
   
   protNameList = []
@@ -955,48 +1017,51 @@ def file_combiner(cfgFileName):
           print("discarding failed at background test")
           raise
     
-    if pairedBool: pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
-    else: 
+    if pairedBool: 
+      pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
+      if isnan(pValueNum): pValueNum = 1
+    elif not singleGroupFlag: 
       if degreeFlag:
         if len(tTestD["Group2"]) < 3 or len(tTestD["Group1"]) < 3:
           print("Warning, T testing may be inaccurate due to low sample numbers:")
           print(tTestD)
           degreeFlag = False
       pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" , equal_var = False)[1]) # calculate p value using t test here for unpaired values
-    # pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise")[1])
-    # pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
-    if isnan(pValueNum): pValueNum = 1
+      # pValueNum = float(scipy.stats.ttest_ind(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise")[1])
+      # pValueNum = float(scipy.stats.ttest_rel(tTestD["Group1"],tTestD["Group2"], nan_policy = "raise" )[1])
+      if isnan(pValueNum): pValueNum = 1
     # if 0.4 < pValueNum < 0.6: print(rowSeries)
     
     # p value calculated. now for the fold change
     
     fCBoundMin = 1/32  # calculate fold change
     fCBoundMax = 32
-    
-    if sum(fCD["Group2"]) == 0:
-      if sum(fCD["Group1"]) > 0: fCNum = fCBoundMax
-      else: fCNum = 1
-    elif sum(fCD["Group1"]) == 0: fCNum = fCBoundMin
-    else: 
-      fCDict = {"Group1":[],"Group2":[]}
-      for tTestI in fCD["Group1"]:
-        if tTestI > 0: fCDict["Group1"].append(tTestI)
+
+    fCDict = {"Group1":[]}
+    for tTestI in fCD["Group1"]:
+      if tTestI > 0: fCDict["Group1"].append(tTestI)
+    if not singleGroupFlag:
+      fCDict["Group2"]=[]
       for tTestI in fCD["Group2"]:
         if tTestI > 0: fCDict["Group2"].append(tTestI)      
+    
+      if sum(fCD["Group2"]) == 0:
+        if sum(fCD["Group1"]) > 0: fCNum = fCBoundMax
+        else: fCNum = 1
+      elif sum(fCD["Group1"]) == 0: fCNum = fCBoundMin
+      else: fCNum = (sum(fCDict["Group1"])/len(fCDict["Group1"]))/(sum(fCDict["Group2"])/len(fCDict["Group2"]))
       
-      fCNum = (sum(fCDict["Group1"])/len(fCDict["Group1"]))/(sum(fCDict["Group2"])/len(fCDict["Group2"]))
-    
-    if fCNum > fCBoundMax: fCNum = fCBoundMax
-    elif fCNum < fCBoundMin: fCNum = fCBoundMin
-    
-    fCNum = np.log2(fCNum)
-    
-    finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
-    finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
+      if fCNum > fCBoundMax: fCNum = fCBoundMax
+      elif fCNum < fCBoundMin: fCNum = fCBoundMin
+      
+      fCNum = np.log2(fCNum)
+      
+      finDF.at[rowSeries.Index,"P value"] = round(pValueNum,5) # add fold change and P value to dataframe
+      finDF.at[rowSeries.Index,"Log2 Fold change"] = round(fCNum,5)
     
     if rankBool:
       finDF.at[rowSeries.Index,"Avg1"] = round((sum(fCDict["Group1"])/len(fCDict["Group1"])),5)
-      finDF.at[rowSeries.Index,"Avg2"] = round((sum(fCDict["Group2"])/len(fCDict["Group2"])),5)
+      if not singleGroupFlag: finDF.at[rowSeries.Index,"Avg2"] = round((sum(fCDict["Group2"])/len(fCDict["Group2"])),5)
     
   finDF.dropna(axis=0, how='any', inplace=True)
   
@@ -1009,8 +1074,10 @@ def file_combiner(cfgFileName):
 
   if rankBool:
     finDF["rank1"] = finDF["Avg1"].rank(method="dense", ascending=False)
-    finDF["rank2"] = finDF["Avg2"].rank(method="dense", ascending=False)
-    finDF.drop(columns=["Avg1", "Avg2"])
+    if not singleGroupFlag: 
+      finDF["rank2"] = finDF["Avg2"].rank(method="dense", ascending=False)
+      finDF.drop(columns=["Avg1", "Avg2"])
+    else: finDF.drop(columns=["Avg1"], inplace = True)
   
   print("")
   print(finDF)
@@ -2480,7 +2547,7 @@ def crapome_parser(cfgFileName, protFileName, crapFileName):
             break
   
   # crapFile = open(os.path.join(os.path.split(os.path.dirname(__file__))[0], "data", "cav1ko", "processed", "1503486016360_gp-1.txt"),"rU")
-  crapFile = open(os.path.join(outputFolder, crapFileName),"rU")
+  crapFile = open(os.path.join(outputFolder, crapFileName),"r")
   outF = open(os.path.join(outputFolder, ".".join(crapFileName.split(".")[:-1]) + "_processed." + crapFileName.split(".")[-1]),"w")
   
   headerFlag = True
@@ -2530,7 +2597,7 @@ def crapome_parser(cfgFileName, protFileName, crapFileName):
   crapDF = crapDF.groupby(crapDF.index).first()
   
   # protDF.drop_duplicates(inplace=True, keep='first')
-  combinedDF = pd.concat([protDF,crapDF], axis=1, join='outer')
+  combinedDF = pd.concat([protDF,crapDF], axis=1, join='outer', sort=True)
   combinedDF["Protein names"].fillna("", inplace = True)
   combinedDF["Crapome_score"].fillna(0, inplace = True)
   combinedDF["Gene names"] = combinedDF.index
