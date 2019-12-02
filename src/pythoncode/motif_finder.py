@@ -9,19 +9,28 @@ Use regex to find simple motifs in protein sequences
 
 def starter():
   """run all the scripts"""
-  from tools import uniprot_dicter
+  from tools import uniprot_dicter, go_term_advanced_lookup
   
   mouseD = uniprot_dicter()
   
   with open("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-10-3.csv","r") as inpF:
-    with open("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-10-3_cholesterol.csv","w") as outF:
+    with open("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-10-3_cholesterol_2.csv","w") as outF:
 
       headerS = next(inpF)  
       outF.write(headerS.rstrip("\n") + ", Protein sequence, Cholesterol binding\n")
       
+      lineCount = 0
       for inpLine in inpF:
+        lineCount += 1
+        print(".", end = "")
+        if lineCount == 100:
+          lineCount = 0
+          print("\n")
         inpL = inpLine.rstrip().split(",")
         protID = inpL[0]
+        
+        go_term_advanced_lookup(protID)
+        
         protSeq = mouseD[protID]
         inpL.append(protSeq)
         # protSeq = "MSGGKYVDSEGHLYTVPIREQGNIYKPNNKAMADELSEKQVYDAHTKEIDLVNRDPKHLNDDVVKIDFEDVIAEPEGTHSFDGIWKASFTTFTVTKYWFYRLLSALFGIPMALIWGIYFAILSFLHIWAVVPCIKSFLIEIQCISRVYSIYVHTVCDPLFEAVGKIFSNVRINLQKEI"

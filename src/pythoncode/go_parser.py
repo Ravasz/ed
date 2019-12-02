@@ -8,23 +8,28 @@ Take the output file from abs_quant.py and the folder with all the GO terms and 
 
 # with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20162.txt","r") as inpF:
 #   with open("/home/mate/workspace/katamari/src/ed/bob/processed/abs_quant_24H_T4-14-24-27-05-20164.txt","w") as outF:
-with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-50-08-08-2019_2.txt","r") as inpF:
-  with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-50-08-08-2019_3.txt","w") as outF:
+# with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-50-08-08-2019_2.txt","r") as inpF:
+#   with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-50-08-08-2019_3.txt","w") as outF:
+with open("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-10-3_cholesterol_2.csv","r") as inpF:
+  with open("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-10-3_cholesterol_2_go_chol.csv","w") as outF:
+
   
     headerFlag = True
     
     for inpLine in inpF:
       inpL = inpLine.split(",")
+      print(inpL)
       if headerFlag:
         headerFlag = False
-        outF.write(inpLine.rstrip("\n") + "," + "GO Function," + "GO Process," + "GO Component\n")
+        outF.write(inpLine.rstrip("\n") + "," + "GO Function," + "GO Process," + "GO Component, cholGO\n")
         continue
       # this block here opens the GO term file associated with the query at hand, and collects out the GO terms into 3 lists
-      with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+inpL[1]+".txt","r") as goF:
+      with open("/home/mate/workspace/katamari/src/ed/datafiles/go_terms/"+inpL[0]+".txt","r") as goF:
         goHead = True
         goFun = []
         goProc = []
         goComp = []
+        goChol = []
         for goLine in goF:
           if goHead:
             goHead = False
@@ -39,12 +44,15 @@ with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-5
           if goL[11] == "Function" or goL[11] == "molecular_function":
             if currGo not in goFun:
               goFun.append(currGo)
+              if "holesterol" in currGo: goChol.append(currGo)
           elif goL[11] == "Process" or goL[11] == "biological_process":
             if currGo not in goProc:
               goProc.append(currGo)
+              if "holesterol" in currGo: goChol.append(currGo)
           elif goL[11] == "Component" or goL[11] == "cellular_component":
             if currGo not in goComp:
               goComp.append(currGo)        
+              if "holesterol" in currGo: goChol.append(currGo)
           else:
             print("got something odd:")
             print(goLine)
@@ -68,7 +76,13 @@ with open("/home/mate/code/ed/src/data/processed/julia_time_course/julia_t0-15-5
         if compI is not goComp[-1]:
           compS += ";"                  
       
-      outF.write(inpLine.rstrip("\n") + "," + funS + "," + procS + "," + compS + "\n")
+      cholS = ""
+      for cholI in goChol:
+        cholS += cholI
+        if cholI is not goChol[-1]:
+          cholS += ";"       
+      
+      outF.write(inpLine.rstrip("\n") + "," + funS + "," + procS + "," + compS + "," + cholS + "\n")
       
 
         
