@@ -10,7 +10,8 @@ Can be freely edited or deleted anytime.
 
 def main():  
   print("you are in the sandbox")
-  pandas_tester()
+  # pandas_tester()
+  column_mover()
   
   
   
@@ -62,7 +63,17 @@ def finder_thing():
         print(inpLine)
 
 
-  
+
+def column_mover():
+  """copy the second column of a two column csv into a new file"""
+  with open("/home/mate/code/ed/src/data/cav1ko/processed/venn_group1_vs_group2-namelist-11.txt", "r") as inpF: # read and process the csv with protein names and p values
+    with open("/home/mate/code/ed/src/data/cav1ko/processed/null_names_2.txt", "w") as outF:
+      for inpLine in inpF:
+        inpS = inpLine.split(",")[1].rstrip("\n")
+        if inpS == "": break
+        outF.write(inpS + "\n")
+
+    
 
 def p_value_explorer():
   """find all entries in bob's data that have the ominous 0.4226 for p value and print them out in STDout"""

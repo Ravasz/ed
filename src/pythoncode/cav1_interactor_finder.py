@@ -76,6 +76,8 @@ def venn_plotter(group1, group2, group3):
   bindGroupFSet = group1.intersection(group2.difference(group3))
   bindGroupSSet = group1.intersection(group3.difference(group2))
   bindBothSet = group1.intersection(group2.intersection(group3))
+  group1only = group2.difference(group3)
+  group2only = group3.difference(group2)
       
   print("\nonly group1:")
   for setI in bindGroupFSet:
@@ -88,12 +90,27 @@ def venn_plotter(group1, group2, group3):
   print("\ncommon")
   for setI in bindBothSet:
     print(setI)
+    
+  print("\nGroup1:")
+  for setI in group1only:
+    print(setI)
 
-  print("\nWT only")
-  for setI in group2.difference(group3):
+  print("\nGroup2:")
+  for setI in group2only:
     print(setI)
     
-  seq_writer(list(group2.difference(group3)))
+  print(len(group2.union(group3)))
+
+  with open(os.path.join(outFolder, "fullList_2.txt"), "w") as outF:
+    for setI in group2.union(group3):
+      outF.write(setI + "\n")
+      
+# 
+#   print("\nWT only")
+#   for setI in group2.difference(group3):
+#     print(setI)
+    
+  # seq_writer(list(group2.difference(group3)))
 
 def seq_writer(groupList):
   
@@ -122,11 +139,13 @@ def adhesome_parser():
   # inFile = open("/home/mate/code/ed/src/data/cav1ko/components.csv","r")
   
   inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/components.csv")
+  return set(inDF["Official Symbol"])
   # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/cholesterol_binders.csv", header = None)
+  # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/null_names_2.txt", header = None)
   
-  # return set(inDF[0])
+  return set(inDF[0])
   
-  return set(list(inDF["Official Symbol"]))
+  # return set(list(inDF["Official Symbol"]))
   
 #   print(inDF.shape)
 #   print(inDF)
@@ -138,35 +157,43 @@ def adhesome_parser():
 def venn_lister():
   """create set of gene names from analyzed proteingroups file based on preset conditions"""
   import pandas as pd
-  import numpy as np
+  # import numpy as np
   pd.set_option('display.max_columns', 500)
   pd.set_option('display.width', 1000)  
   
-  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-17-5.csv")
+  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_paper_11-12-2019_combined_2019-12-17-14.csv")
+
+  
+  # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-17-5.csv")
 
   inDF["Gene names"] = inDF["Gene names"].str.upper()
   
 #   inDF["Venn groups"] = np.where(inDF["Avg1"] * 1.5 <= inDF["Avg2"], "group2", "")
 #   inDF["Venn groups"] = np.where(inDF["Avg2"] * 1.5 <= inDF["Avg1"], "group1", inDF["Venn groups"])
 
-  inDF["Venn groups"] = np.where(inDF["Avg1"] * 1.5 <= inDF["Avg2"], "group2", "")
-  inDF["Venn groups"] = np.where(inDF["Avg2"] * 1.5 <= inDF["Avg1"], "group1", inDF["Venn groups"])
+#   inDF["Venn groups"] = np.where(inDF["Avg1"] * 1.5 <= inDF["Avg2"], "group2", "")
+#   inDF["Venn groups"] = np.where(inDF["Avg2"] * 1.5 <= inDF["Avg1"], "group1", inDF["Venn groups"])
   
-  venn1DF = inDF[inDF["Avg1"] > 1000000]
+  venn1DF = inDF[inDF["Avg1"] > 1000000] # prots present in group 1
   
-  venn2DF = inDF[inDF["Avg2"] > 1000000]
+  venn2DF = inDF[inDF["Avg2"] > 1000000] # prots present in group 2
   
-  # print(inDF)
+  print(inDF[inDF["Gene names"] == "CAV1"])
+  print(inDF[inDF["Gene names"] == "NPC1"])
+  print(inDF[inDF["Gene names"] == "NPC2"])
   
   # print(list(inDF["Gene names"]))
+  
+  # return(set(list(venn1DF["Majority protein IDs"])),set(list(venn2DF["Majority protein IDs"])))
   return(set(list(venn1DF["Gene names"])),set(list(venn2DF["Gene names"])))
 
   
 def runner():
   """run the functions needed"""
+  vennO = venn_lister()
 
-  venn_plotter(venn_maker(False)[0],venn_lister()[0],venn_lister()[1])
-  # venn_plotter(adhesome_parser(),venn_lister()[0],venn_lister()[1])
+  # venn_plotter(venn_maker(False)[0],venn_lister()[0],venn_lister()[1])
+  venn_plotter(adhesome_parser(),vennO[0],vennO[1])
   
 def row_finder():
   """find rows based on the gene name and save the rows to a new single file"""

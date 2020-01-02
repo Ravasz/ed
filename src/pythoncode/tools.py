@@ -635,7 +635,7 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
   - handle different organisms too using the taxids
   """
   
-  import os.path
+  # import os.path
   
   baitStr = "CAV1" # gene name of bait protein. Has to be entered all caps
   

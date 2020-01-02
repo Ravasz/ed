@@ -18,13 +18,15 @@ cfg file name: proteingroups_analyzer_params.cfg
 
 def main():
   print("call a function here to start")
+  
+  cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1_KOvsWT.cfg"
   # cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_params_cav1ko.cfg"
   # cfgFile = "/home/mate/code/ed/src/pythoncode/proteingroups_analyzer_julia_t0.cfg"
-  cfgFile = "/home/mate/code/ed/src/data/ptpn22/proteingroups_analyzer_params_ptpn22.cfg"
+  # cfgFile = "/home/mate/code/ed/src/data/ptpn22/proteingroups_analyzer_params_ptpn22.cfg"
   # file_analyzer(cfgFile)
-  # file_combiner(cfgFile)
+  file_combiner(cfgFile)
   # crapome_parser(cfgFile, "proteinGroups_EV_matched_samples_24-11-2018_exosome_Cav1ko_vs_wt_all_datasets_26-11-2018_combined_2019-01-07-10.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
-  crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_14-08-2019_combined_2019-08-19-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
+  # crapome_parser(cfgFile, "proteinGroups_ptpn22_with_r619w_16-05-2018_ptpn22_14-08-2019_combined_2019-08-19-2.csv", "152632541280_gp_ptpn22_r619w_FC_16052018.txt")
   
 
 def file_analyzer(cfgFile):
@@ -113,7 +115,7 @@ def volcano_plot_for_analyzer(plotDF,outFolder):
   
   plt.show# (block = False)
 
-def venn_drawer(inpDict, outFolder, vennFlag = False):
+def venn_drawer(inpDict, namesDF, outFolder, vennFlag = False):
   """draw a venn diagram using the input dictionary"""
   import matplotlib_venn
   import matplotlib.pyplot as plt
@@ -214,29 +216,42 @@ def venn_drawer(inpDict, outFolder, vennFlag = False):
   matplotlib_venn.venn2([setList[0],setList[1]], (inpDict.keys()))
   if vennFlag:
     print("writing venn protein names out to file")
-    outF = open("/home/mate/code/ed/src/data/cav1ko/processed/vennlists_cav1ko_vs_wt_2.txt","w")
+    i = 1
+    while os.path.exists(os.path.join(outFolder, (outFigName + "-namelist-" + str(i) + ".txt"))):
+      i += 1
+
+    outF = open(os.path.join(outFolder, (outFigName + "-namelist-" + str(i))) + ".txt","w")
+    
+    
     listList0 = list(setList[0])
     listList1 = list(setList[1])
-    if len(listList0)>=len(listList1):
-      for i in range(len(listList0)):
-        outF.write(listList0[i])
-        outF.write("\t")
+    
+    nameList0 = []
+    nameList1 = []
+
+    for listI in listList0: nameList0.append(str(namesDF.loc[namesDF.index == listI]["Gene names"].values[0]).upper())
+    for listI in listList1: nameList1.append(str(namesDF.loc[namesDF.index == listI]["Gene names"].values[0]).upper())
+    
+    if len(nameList0)>=len(nameList1):
+      for i in range(len(nameList0)):
+        outF.write(nameList0[i])
+        outF.write(",")
         try:
-          outF.write(listList1[i])
+          outF.write(nameList1[i])
         except IndexError:
           outF.write("")
         outF.write("\n")
     else:
-      for i in range(len(listList1)):
-        outF.write(listList1[i])
-        outF.write("\t")
+      for i in range(len(nameList1)):
+        outF.write(nameList1[i])
+        outF.write(",")
         try:
-          outF.write(listList0[i])
+          outF.write(nameList0[i])
         except IndexError:
           outF.write("")
         outF.write("\n")
   
-  outF.close()
+    outF.close()
   # matplotlib_venn.venn2([setList[0],setList[1]], set_labels=("OT1-IL7","OT1 + OT1 Cav1KO"))
   print(len(setList[0]))
   print(len(setList[1]))
@@ -366,9 +381,12 @@ def file_combiner(cfgFileName):
   minPeptideCount = 0
   minSpecPeptideCount = 0
   minPepGroupCount = 0
+  minPepMaxCount = 0
+  removeNull = False
   histBool = False
   pValueDist = False
   vennBool = False
+  vennNames = False
   pairedBool = False
   volcanoBool = False
   heatmapBool = False
@@ -416,6 +434,7 @@ def file_combiner(cfgFileName):
           elif newLine.startswith("Heatmap")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": heatmapBool = True
           elif newLine.startswith("Paired T test")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": pairedBool = True
           elif newLine.startswith("onlyAlwaysDetected")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": onlyAlwaysDetected = True
+          elif newLine.startswith("Remove null")and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": removeNull = True
           elif newLine.startswith("Minimum peptide count:"):
             minPepInput = newLine.strip(" \n").split(":")[-1].strip(" ")
             try:
@@ -439,10 +458,20 @@ def file_combiner(cfgFileName):
             try:
               minPepGroupCount = int(minPepGroupInput)
             except ValueError:
-              print("for Special peptide count a number should be given, instead of " + minSpecPepInput)
+              print("for peptide count per group a number should be given, instead of " + minSpecPepInput)
               print("please edit the config file. You can set this to 0 to diasable it.")
-              sys.exit(0)     
-          
+              sys.exit(0)    
+               
+          elif newLine.startswith("Minimum peptide count in maximum Razor column"):
+            minPepMaxInput = newLine.strip(" \n").split(":")[-1].strip(" ")
+            try:
+              minPepMaxCount = int(minPepMaxInput)
+            except ValueError:
+              print("for peptide count the max column a number should be given, instead of " + minSpecPepInput)
+              print("please edit the config file. You can set this to 0 to diasable it.")
+              sys.exit(0)       
+                      
+          elif newLine.startswith("Venn Names") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": vennNames = True
           elif newLine.startswith("LFQDistributions") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": histBool = True
           elif newLine.startswith("Remove zeroes") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": zeroesBool = True
           elif newLine.startswith("Background threshold") and "".join(newLine.strip(" \n").split(":")[1:]).strip(" ").upper() == "TRUE": backgroundBool = True
@@ -515,8 +544,9 @@ def file_combiner(cfgFileName):
               
               if "</Group" in newLine:
                 break
+              if newLine.strip(" \n") == "": continue
               subLineCount += 1
-              if subLineCount == 10: 
+              if subLineCount == 13: 
                 print("something terrible has happened! more than 10 samples are found in a group")
                 print(groupDict)
                 sys.exit(0)
@@ -604,6 +634,14 @@ def file_combiner(cfgFileName):
     for sI in currGroupL:
       colL.append("LFQ intensity "+ sI)
 
+    if removeNull:
+      nullL = []
+      nullFile = open("/home/mate/code/ed/src/data/cav1ko/processed/null_names_1.txt","r")
+      for nullLine in nullFile:
+        nullL.append(nullLine.strip(" \n"))
+        
+        
+    
     with open(dataFile,"r") as inpF:
    
       cN = 0
@@ -652,6 +690,10 @@ def file_combiner(cfgFileName):
             lenS = len(geneI)
             curGene = geneI
         if "__" in curGene: continue # get rid of contaminant lines
+        if removeNull:
+          if curGene in nullL: 
+            continue
+          
         corrGeneN = geneL.index(curGene)
  
         if curGene[-2] == "-":
@@ -947,11 +989,14 @@ def file_combiner(cfgFileName):
     changeBool = False
     
     if minPeptideCount > 0 or minSpecPeptideCount > 0: 
-      print(minPeptideCount)
+      # print(minPeptideCount)
       if not minPeptides(minPeptideCount, minSpecPeptideCount, rowSeries,colL): discardBool = True # check for minimum number of specified unique peptides
       
     if minPepGroupCount > 0 and not discardBool:
       if not min_peptides_group(groupNumDict,minPepGroupCount, rowSeries): discardBool = True
+    
+    if minPepMaxCount > 0 and not discardBool:
+      if not min_peptides_max(groupNumDict,minPepGroupCount, rowSeries): discardBool = True
     
     if zeroesBool and not discardBool: 
       rowSeries, discardBool, changeBool = zero_remover(rowSeries,groupNumDict)
@@ -1087,6 +1132,8 @@ def file_combiner(cfgFileName):
   
   # outF = open(os.path.join(outputFolder, ".".join(inpFileList[0].split(".")[:-1]) + "_combined-" + dateStr + ".csv"),"w")
   
+  
+  
   i = 1
   while os.path.exists(os.path.join(outputFolder, ".".join(inpFileList[0].split(".")[:-1]).split("/")[-1] + "_" + expID + "_combined_" + dateStr +  "-" + str(i) + ".csv")):
       i += 1
@@ -1128,7 +1175,7 @@ def file_combiner(cfgFileName):
         
     # print(vennD)
 
-    venn_drawer(vennD, outputFolder)
+    venn_drawer(vennD, finDF, outputFolder, vennNames)
   
   if heatmapBool:
     import seaborn as sns
@@ -2621,7 +2668,7 @@ def crapome_parser(cfgFileName, protFileName, crapFileName):
   print("results written to file")
   
 def minPeptides(countN, fancyCountN, protSeries, columnL):
-  """returns true or false. If the protseries has the required minimum number of unique peptides in every row,
+  """returns true or false. If the protseries has the required minimum number of unique peptides in every column,
   then it returns true. Else false """
   
   #   Pandas(Index='Q9CPX6', _1='Atg3', _2='Ubiquitin-like-conjugating enzyme ATG3', _3='2', _4='2', _5=0, _6=0, _7='2', _8='2', _9=0, _10=0, _11='10039000', _12='26676000', _13=0, _14=0)
@@ -2647,19 +2694,21 @@ def min_peptides_group(groupNumDict, minPepGroupCount, rowSeries):
   passedFlag = False
   blahFlag = False
   dataLen = 3
+  # print(rowSeries)
   if rowSeries[1] == "Caveolin-1": 
     print(rowSeries)
     blahFlag = True
     
   
   for groupN in groupNumDict.keys():
-    dataLen += len(groupN)
+    dataLen += len(groupNumDict[groupN])
   
   
   for groupN in groupNumDict.keys():
     lowCount = 0
     for l in range(len(groupNumDict[groupN])): #@Unusedvariable
       if blahFlag: print(lowCount)
+      # print(rowSeries[dataLen])
       if int(rowSeries[dataLen]) < minPepGroupCount: lowCount += 1
       dataLen += 1
     
@@ -2676,9 +2725,22 @@ def min_peptides_group(groupNumDict, minPepGroupCount, rowSeries):
     print(groupNumDict)
     blahFlag = False
   return passedFlag
-    
-    
 
+def min_peptides_max(groupNumDict, minPepMaxCount, rowSeries):    
+  """check if there is at least one sample with the specified minimum number of unique peptides"""
+  
+  
+
+  dataLen = 3  
+  for groupN in groupNumDict.keys():
+    dataLen += len(groupNumDict[groupN])
+    
+  for groupN in groupNumDict.keys():
+    for l in range(len(groupNumDict[groupN])): #@Unusedvariable
+      if int(rowSeries[dataLen]) >= minPepMaxCount: return True   
+      dataLen += 1    
+      
+  return False
     
     
 
