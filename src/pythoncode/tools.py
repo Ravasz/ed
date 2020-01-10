@@ -671,6 +671,7 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
     if foundFlagA: 
       geneNameA = inpList[4].split("|")[counterN].split(":")[1].split("(")[0] # gene name A extracted here
       foundFlagA = False
+      # if geneNameA != "CAV1": print(geneNameA)
     else: 
       geneNameA = "not found"
       nfCount += 1
@@ -691,6 +692,8 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
     if foundFlagB:
       geneNameB = inpList[5].split("|")[counterN].split(":")[1].split("(")[0] # gene name B extracted here
       foundFlagB = False
+      # if geneNameB != "CAV1": print(geneNameB)
+
     else: 
       geneNameB = "not found"
       nfCount += 1
@@ -699,7 +702,8 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
       preyL.append(geneNameA.upper())
     if geneNameB.upper() not in preyL:
       preyL.append(geneNameB.upper())
-    
+      
+        
     """
     if geneNameA.upper() == baitStr or geneNameB.upper() == baitStr: # check if bait protein is one of the interactors
       inpItem = inpList[1].split(":")[-1]
@@ -729,10 +733,10 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
   except ValueError:
     pass
   
-  try:
-    preyL.remove(baitStr)
-  except ValueError:
-    pass
+#   try:
+#     preyL.remove(baitStr)
+#   except ValueError:
+#     pass
       
   
 #   print(preyL)
@@ -754,7 +758,8 @@ def intact_parser(inFileIntact, InfileBiogrid, outFile):
     bioL = []
   
   biogInp.close()
-  
+  print("number of interactors")
+  print(len(preyL))
   outF = open(outFile,"w")
   
   for biogI in preyL:

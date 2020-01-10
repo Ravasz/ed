@@ -9,11 +9,11 @@ with group1, group2 and interactors.
 def venn_maker(procFlag = True):
   """draw venn diagrams of 3 groups"""
   from tools import intact_parser, prot_id_converter
-  
+   
   intactFile = "/home/mate/code/ed/src/data/cav1ko/cav1-intact-interactome.txt"
   biogridFile = "/home/mate/code/ed/src/data/cav1ko/BIOGRID-GENE-107305-3.5.170.tab2.txt"
   groupFile = open("/home/mate/code/ed/src/data/cav1ko/processed/vennlists_cav1ko_vs_wt.txt","r")
-  
+   
   intact_parser(intactFile, biogridFile, "/home/mate/code/ed/src/data/cav1ko/processed/cav1_interactor.txt")
   
   bindFile = open("/home/mate/code/ed/src/data/cav1ko/processed/cav1_interactor.txt","r")
@@ -88,16 +88,19 @@ def venn_plotter(group1, group2, group3):
     print(setI)
     
   print("\ncommon")
+  print(len(bindBothSet))
   for setI in bindBothSet:
     print(setI)
     
   print("\nGroup1:")
-  for setI in group1only:
-    print(setI)
+  print(len(group1only))
+#   for setI in group1only:
+#     print(setI)
 
   print("\nGroup2:")
-  for setI in group2only:
-    print(setI)
+  print(len(group2only))
+#   for setI in group2only:
+#     print(setI)
     
   print(len(group2.union(group3)))
 
@@ -138,9 +141,9 @@ def adhesome_parser():
   
   # inFile = open("/home/mate/code/ed/src/data/cav1ko/components.csv","r")
   
-  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/components.csv")
-  return set(inDF["Official Symbol"])
-  # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/cholesterol_binders.csv", header = None)
+  # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/components.csv")
+  # return set(inDF["Official Symbol"])
+  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/cholesterol_binders.csv", header = None)
   # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/null_names_2.txt", header = None)
   
   return set(inDF[0])
@@ -161,7 +164,10 @@ def venn_lister():
   pd.set_option('display.max_columns', 500)
   pd.set_option('display.width', 1000)  
   
-  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_paper_11-12-2019_combined_2019-12-17-14.csv")
+  #inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_paper_11-12-2019_combined_2019-12-17-14.csv")
+  
+  inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_paper_08-01-2020_combined_2020-01-08-1.csv")
+
 
   
   # inDF = pd.read_csv("/home/mate/code/ed/src/data/cav1ko/processed/proteinGroups_EV_matched_samples_24-11-2018_exosome_cav1ko_vs_wt_all_datasets_24-11-2018_combined_2019-04-17-5.csv")
@@ -192,8 +198,9 @@ def runner():
   """run the functions needed"""
   vennO = venn_lister()
 
-  # venn_plotter(venn_maker(False)[0],venn_lister()[0],venn_lister()[1])
+  # venn_plotter(venn_maker(False)[0],vennO[0],vennO[1])
   venn_plotter(adhesome_parser(),vennO[0],vennO[1])
+  # venn_maker(False)
   
 def row_finder():
   """find rows based on the gene name and save the rows to a new single file"""
